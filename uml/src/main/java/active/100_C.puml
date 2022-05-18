@@ -36,7 +36,9 @@ card "Instantiation Before" #skyblue    {
 
 card "Instantiation"{
 split
-    :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors;
+    :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
+    对构造函数进行拦截
+    ;
 split again
     :instanceSupplier;
 split again
@@ -46,7 +48,7 @@ endsplit
     :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
     :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
     被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象
-    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
+    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference对早期引用进行拦截
     ;
     note
     if (!this.singletonObjects.containsKey(beanName)) {
