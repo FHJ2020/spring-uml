@@ -3,6 +3,23 @@
 
 start
 card "Parse BeanDefinition" #tan{
+    :resolve NamespaceHandler;
+    note
+    NamespaceHandlerResolver.resolve
+    handler默认定义位置 META-INF/spring.handlers
+    NamespaceHandler
+    NamespaceHandlerSupport
+    #ContextNamespaceHandler
+    #AopNamespaceHandler
+    end note
+    :handler.init
+    #registerBeanDefinitionParser
+    #registerBeanDefinitionDecorator
+    ;
+    :handler.parse
+    #get BeanDefinitionParser
+    #BeanDefinitionParser.parse;
+
     :register PostProcessors BeanDefinition;
     :register BeanDefinition;
 }

@@ -4,15 +4,28 @@ title BeanDefinition 类结构
 
 '子类
 namespace groupChildren{
+    abstract class AbstractBeanDefinition
     class AnnotatedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
     class ConfigurationClassBeanDefinition extends RootBeanDefinition implements AnnotatedBeanDefinition
     class ClassDerivedBeanDefinition extends RootBeanDefinition
     class ChildBeanDefinition extends AbstractBeanDefinition
     class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
+    note bottom of ScannedGenericBeanDefinition
+    @Component 定义的Bean
+    end note
+
     class BasePackagesBeanDefinition extends GenericBeanDefinition
     class EntityScanPackagesBeanDefinition extends GenericBeanDefinition
     class ServletComponentRegisteringPostProcessorBeanDefinition extends GenericBeanDefinition
     class GenericBeanDefinition extends AbstractBeanDefinition
+    note bottom of GenericBeanDefinition
+    xml 定义的Bean
+    end note
+}
+class BeanDefinitionHolder implements BeanMetadataElement{
+    - BeanDefinition beanDefinition
+    - String beanName
+    - String[] aliases
 }
 
 interface AnnotatedBeanDefinition extends BeanDefinition
@@ -22,7 +35,6 @@ class RootBeanDefinition {
     - Set<Member> externallyManagedConfigMembers
 }
 RootBeanDefinition ---|> AbstractBeanDefinition
-
 
 
 interface BeanDefinition{

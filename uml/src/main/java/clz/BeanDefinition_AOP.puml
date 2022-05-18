@@ -38,28 +38,6 @@ interface BeanDefinition
 
 BeanDefinitionHolder -- BeanDefinition
 
-object BeanDefinitionRegistry_Object
-object 原BeanDefinition_Object
-object 原BeanDefinitionHolder_Object{
-    beanDefinition
-}
-原BeanDefinitionHolder_Object::beanDefinition --> 原BeanDefinition_Object
-object 装饰后的BeanDefinitionHolder_Object{
-    beanDefinition=代理RootBeanDefinition_Object
-}
-object 代理RootBeanDefinition_Object{
-    ==beanClass=ScopedProxyFactoryBean.class
-    decoratedDefinition=原BeanDefinitionHolder_Object
-}
-
-ScopedProxyBeanDefinitionDecorator -- BeanDefinitionHolder : decorate 装饰 >
-装饰后的BeanDefinitionHolder_Object --> 代理RootBeanDefinition_Object
-代理RootBeanDefinition_Object --> 原BeanDefinitionHolder_Object
-BeanDefinitionRegistry_Object --> 原BeanDefinition_Object : 注册原bd
-note on link : "注册的名字为 scopedTarget. +beanName"
-
-BeanDefinitionRegistry_Object --> 代理RootBeanDefinition_Object : 注册代理bd
-note on link : "注册的名字为beanName"
 
 @enduml
 

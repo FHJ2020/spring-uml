@@ -4,41 +4,22 @@ title scaner处理类上注解,BeanFactoryPostProcessor处理属性、方法、�
 
 abstract class ClassVisitor
 class ConditionEvaluator
+
+
+'BeanDefinition=============================
+abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition
+class GenericBeanDefinition extends AbstractBeanDefinition
+
+interface AnnotatedBeanDefinition {
+    + AnnotationMetadata getMetadata()
+    + MethodMetadata getFactoryMethodMetadata()
+}
+
 class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition{
     - AnnotationMetadata metadata
 }
-namespace ClassPathBeanDefinitionScannerFilter{
-    annotation @Component
-    annotation @Repository
-    annotation @Service
-    annotation @Controller
-    annotation @RestController
-    annotation @ControllerAdvice
-    annotation @Configuration
-}
 
 
-ComponentScanBeanDefinitionParser -- ClassPathBeanDefinitionScannerFilter
-
-namespace ac{
-    annotation @Required,
-    annotation @Autowired,
-    annotation @PostConstruct,
-    annotation @PreDestroy,
-    annotation @Resource,
-    annotation @PersistenceContext
-    annotation @PersistenceUnit
-}
-AnnotationConfigBeanDefinitionParser -- ac
-
-namespace common{
-    annotation @Lazy
-    annotation @Primary
-    annotation @DependsOn
-    annotation @Role
-    annotation @Description
-}
-AnnotationConfigBeanDefinitionParser -- common
 
 namespace annotation-config-processor{
     class ConfigurationClassPostProcessor
@@ -48,13 +29,15 @@ namespace annotation-config-processor{
     class EventListenerMethodProcessor
     class DefaultEventListenerFactory
 }
-AnnotationConfigBeanDefinitionParser -- "annotation-config-processor"
+AnnotationConfigBeanDefinitionParser ------- "annotation-config-processor"
 
 abstract class NamespaceHandlerSupport implements NamespaceHandler
 abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilter
 class AnnotationTypeFilter extends AbstractTypeHierarchyTraversingFilter
 
-interface BeanDefinitionParser
+interface BeanDefinitionParser{
+    BeanDefinition parse(Element element, ParserContext parserContext);
+}
 note top
 解析beans标签下顶级自定义namespace
 转换成BeanDefinitionHolder注册到BeanDefinitionRegistry中
@@ -69,13 +52,18 @@ context nameSpace处理器
 ...
 end note
 
-class ComponentScanBeanDefinitionParser implements BeanDefinitionParser
-note top of ComponentScanBeanDefinitionParser
-处理component-scan
-创建ClassPathBeanDefinitionScanner,使用@Component作为默认的扫描过滤条件(包含@Component声明的注解)
-调用ClassPathBeanDefinitionScanner 进行过滤,然后处理Class上的相关注解
-默认添加 annotation-config 的BeanFactoryPostProcessor(处理属性、方法、字段的注解)处理器bd
+class ComponentScanBeanDefinitionParser implements BeanDefinitionParser{
+    + BeanDefinition parse(Element element, ParserContext parserContext)
+}
+ComponentScanBeanDefinitionParser::parse --> ClassPathBeanDefinitionScanner
+note bottom of ComponentScanBeanDefinitionParser
+**处理component-scan** 与@ComponentScan 相同的功能
+使用@Component作为默认的扫描过滤条件(包含@Component声明的注解),
+作为参数创建ClassPathBeanDefinitionScanner
+默添加 annotation-config 的BeanFactoryPostProcessor(处理属性、方法、字段的注解)处理器bd
 
+@Component @Repository @Service
+@Controller @RestController @ControllerAdvice @Configuration
 end note
 class AnnotationConfigBeanDefinitionParser implements BeanDefinitionParser
 note top of AnnotationConfigBeanDefinitionParser
@@ -88,6 +76,21 @@ note top of AnnotationConfigBeanDefinitionParser
  EventListenerMethodProcessor
  DefaultEventListenerFactory
 bd.role=ROLE_INFRASTRUCTURE
+
+@Required,
+@Autowired,
+@PostConstruct,
+@PreDestroy,
+@Resource,
+@PersistenceContext
+@PersistenceUnit
+
+**common**
+@Lazy
+@Primary
+@DependsOn
+@Role
+@Description
 end note
 
 class AopNamespaceHandler extends NamespaceHandlerSupport
@@ -95,48 +98,92 @@ class MvcNamespaceHandler extends NamespaceHandlerSupport
 
 
 
-interface MetadataReader
+interface MetadataReader{
+	+ Resource getResource()
+	+ ClassMetadata getClassMetadata()
+	+ AnnotationMetadata getAnnotationMetadata()
+}
 class SimpleMetadataReader implements MetadataReader
 
 
 class ClassPathScanningCandidateComponentProvider{
+    # void registerDefaultFilters()
 	- List<TypeFilter> includeFilters
 	- List<TypeFilter> excludeFilters
 }
-
-class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateComponentProvider{
-    - BeanDefinitionDefaults beanDefinitionDefaults
-}
-
-note top of ClassPathBeanDefinitionScanner
-默认值 use-default-filters="true"
-1.找出有@Component的注解的class
-2.@Conditional注解过滤
-3.@Scope注解处理
-4.@Lazy @Primary @DependsOn @Role @Description 注解处理
+note top
+registerDefaultFilters注册@Component作为扫描条件
 end note
 
-class ScopeMetadata
+class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateComponentProvider{
+    - BeanDefinitionRegistry registry
+    - BeanDefinitionDefaults beanDefinitionDefaults
+	- String[] autowireCandidatePatterns
+	- BeanNameGenerator beanNameGenerator = AnnotationBeanNameGenerator.INSTANCE;
+	- ScopeMetadataResolver scopeMetadataResolver = new AnnotationScopeMetadataResolver
+	- boolean includeAnnotationConfig = true
+
+    # Set<BeanDefinitionHolder> doScan(String... basePackages)
+}
+
+note bottom of ClassPathBeanDefinitionScanner
+**xml配置属性处理**
+解析属性 use-default-filters、resource-pattern、name-generator、
+scope-resolver、scoped-proxy、exclude-filter、
+include-filter、type、expression 赋值给对应的属性
+**注解属性处理**
+#扫描class文件,将有@Component注解的class,转成ScannedGenericBeanDefinition
+#解析ScannedGenericBeanDefinition中的@Scope注解,赋值给对应的属性([[./ScopeProxy.puml proxy相关处理]])
+#AnnotationBeanNameGenerator对ScannedGenericBeanDefinition生成beanName
+#默认值赋值处理 BeanDefinitionDefaults
+#解析@Lazy @Primary @DependsOn @Role @Description,赋值给对应的属性
+
+end note
+ClassPathBeanDefinitionScanner::beanNameGenerator ------> BeanNameGenerator #red
+ClassPathBeanDefinitionScanner::scopeMetadataResolver ----> ScopeMetadataResolver #blue
+ClassPathBeanDefinitionScanner ----> ScannedGenericBeanDefinition #skyblue
+
+'====================================scope
+enum ScopedProxyMode{
+    + DEFAULT
+	+ NO
+	+ INTERFACES
+    + TARGET_CLASS
+}
+class ScopeMetadata {
+	- String scopeName = BeanDefinition.SCOPE_SINGLETON;
+	- ScopedProxyMode scopedProxyMode = ScopedProxyMode.NO;
+}
+interface ScopeMetadataResolver{
+    + ScopeMetadata resolveScopeMetadata(BeanDefinition definition)
+}
+ScopeMetadataResolver::resolveScopeMetadata --> ScopeMetadata
+
+class Jsr330ScopeMetadataResolver implements ScopeMetadataResolver
+class AnnotationScopeMetadataResolver implements ScopeMetadataResolver{
+    - ScopedProxyMode defaultProxyMode
+	+ Class<? extends Annotation> scopeAnnotationType = Scope.class;
+}
+AnnotationScopeMetadataResolver::defaultProxyMode -- ScopedProxyMode
 interface AnnotationMetadata extends ClassMetadata, AnnotatedTypeMetadata
 class SimpleAnnotationMetadata implements AnnotationMetadata
 
 class SimpleAnnotationMetadataReadingVisitor extends ClassVisitor
 
-ScopeMetadata -- AnnotationMetadata
 
-ClassPathBeanDefinitionScanner --> MetadataReader : 1 将annotation转成bd
-MetadataReader --> ClassVisitor : 2 处理class文件,转成AnnotationMetadata
-ClassVisitor --> Resource : 3 从class中读取annotation
-Resource --> AnnotationMetadata : 4 转成AnnotationMetadata
-ClassPathBeanDefinitionScanner --> TypeFilter : 5 匹配AnnotationMetadata(@Component)
-ClassPathBeanDefinitionScanner --> ConditionEvaluator : 6 @Conditional 注解匹配 ?
-ClassPathBeanDefinitionScanner --> ScannedGenericBeanDefinition : 7 AnnotationMetadata转成bd
-ClassPathBeanDefinitionScanner --> BeanDefinitionDefaults : 8 bd默认值处理
-ClassPathBeanDefinitionScanner --> ScopeMetadata : 9 scope处理
-ClassPathBeanDefinitionScanner --> AnnotationConfigUtils : 10 其他注解处理 processCommonDefinitionAnnotations
-ClassPathBeanDefinitionScanner --> AnnotationConfigUtils : 11 bd proxy装饰 applyScopedProxyMode
-ClassPathBeanDefinitionScanner --> BeanDefinitionRegistry : 12 注册BeanDefinition
 
+interface BeanNameGenerator {
+    + String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry)
+}
+class DefaultBeanNameGenerator implements BeanNameGenerator
+note bottom of DefaultBeanNameGenerator
+xml
+end note
+class AnnotationBeanNameGenerator implements BeanNameGenerator
+note bottom of AnnotationBeanNameGenerator
+@Component
+end note
+class FullyQualifiedAnnotationBeanNameGenerator extends AnnotationBeanNameGenerator
 
 
 

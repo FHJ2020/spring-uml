@@ -1,0 +1,12 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface AutowireCandidateResolver
+class SimpleAutowireCandidateResolver implements AutowireCandidateResolver
+class GenericTypeAwareAutowireCandidateResolver extends SimpleAutowireCandidateResolver
+class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwareAutowireCandidateResolver
+class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotationAutowireCandidateResolver
+
+
+
+@enduml

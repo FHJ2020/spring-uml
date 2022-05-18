@@ -106,6 +106,9 @@ namespace contextHandler{
             + void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
             + void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
         }
+        note bottom
+        @Component、@ComponentScan、@Import、@ImportResource
+        end note
         ConfigurationClassPostProcessor ....|> .BeanDefinitionRegistryPostProcessor
 
         class EventListenerMethodProcessor {
