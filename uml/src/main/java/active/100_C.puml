@@ -25,13 +25,15 @@ card "Parse BeanDefinition After" #tan{
     end note
     :getBean BeanFactoryPostProcessor;
     :BeanFactoryPostProcessor.postProcessBeanFactory;
-    :EventListenerMethodProcessor;
     note
-    **default**
-    ApplicationListenerDetector
     **annotation callback**
     EventListenerMethodProcessor
-    ConfigurationClassPostProcessor
+    end note
+
+    :SmartInitializingSingleton.afterSingletonsInstantiated;
+    note
+    **annotation callback**
+    EventListenerMethodProcessor
     end note
 }
 endsplit
@@ -67,6 +69,8 @@ split again
 endsplit
     :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
     note
+    **default**
+    ApplicationListenerDetector
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
@@ -114,6 +118,7 @@ card "Initialization Before" #tan {
         ApplicationContextAwareProcessor
         BeanPostProcessorChecker
         **annotation callback**
+        ConfigurationClassPostProcessor
         CommonAnnotationBeanPostProcessor
 
     end note
