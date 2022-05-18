@@ -1,0 +1,110 @@
+@startuml
+'https://plantuml.com/class-diagram
+interface BeanPostProcessor{
+    + Object postProcessAfterInitialization(Object bean, String beanName)
+    + Object postProcessBeforeInitialization(Object bean, String beanName)
+}
+interface InstantiationAwareBeanPostProcessor extends BeanPostProcessor{
+    + Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName)
+    + boolean postProcessAfterInstantiation(Object bean, String beanName)
+    + PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName)
+    + PropertyValues postProcessPropertyValues(PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName)
+}
+note top
+当postProcessBeforeInstantiation(短路初始化方法) 返回一个 bean实例时
+bean的后续初始化只有 postProcessAfterInitialization 会执行
+init-method,@PostConstruct,InitializingBean 都不会执行
+end note
+
+interface MergedBeanDefinitionPostProcessor extends BeanPostProcessor{
+	+ void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+    + void resetBeanDefinition(String beanName)
+}
+
+interface DestructionAwareBeanPostProcessor extends BeanPostProcessor{
+    + void postProcessBeforeDestruction(Object bean, String beanName)
+    + boolean requiresDestruction(Object bean)
+}
+
+interface SmartInstantiationAwareBeanPostProcessor extends InstantiationAwareBeanPostProcessor{
+    + Class<?> predictBeanType(Class<?> beanClass, String beanName)
+    + Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, String beanName)
+    + Object getEarlyBeanReference(Object bean, String beanName)
+}
+
+class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareBeanPostProcessor, MergedBeanDefinitionPostProcessor
+
+
+
+
+class BeanPostProcessorCache {
+     List<InstantiationAwareBeanPostProcessor> instantiationAware = new ArrayList<>();
+     List<SmartInstantiationAwareBeanPostProcessor> smartInstantiationAware = new ArrayList<>();
+     List<DestructionAwareBeanPostProcessor> destructionAware = new ArrayList<>();
+     List<MergedBeanDefinitionPostProcessor> mergedDefinition = new ArrayList<>();
+}
+
+
+
+abstract class InstantiationAwareBeanPostProcessorAdapter implements SmartInstantiationAwareBeanPostProcessor
+abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor
+
+
+
+
+interface BeanFactoryPostProcessor{
+    + void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+}
+interface BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor{
+    + void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
+}
+note right
+在BeanDefinition注册后,对BeanDefinition做进一步处理
+
+end note
+
+namespace abstractApplicationContext.default{
+    'class ApplicationContextAwareProcessor implements .BeanPostProcessor
+    ApplicationContextAwareProcessor .u.....|> .BeanPostProcessor
+    'class ApplicationListenerDetector implements .DestructionAwareBeanPostProcessor, .MergedBeanDefinitionPostProcessor
+    ApplicationListenerDetector .u.....|> .DestructionAwareBeanPostProcessor
+    ApplicationListenerDetector .u.....|> .MergedBeanDefinitionPostProcessor
+    note bottom of ApplicationListenerDetector
+    postProcessMergedBeanDefinition
+    检测bean是否ApplicationListener的子类并保存bean的名字
+    [[../active/003_createBeanInstance.puml applyMergedBeanDefinitionPostProcessors]]
+
+    postProcessAfterInitialization
+    调用applicationContext.addApplicationListener添加到监听器集合中
+    end note
+
+}
+
+
+namespace contextHandler{
+    namespace BeanFactoryPostProcessor {
+        interface SmartInitializingSingleton
+        'class ConfigurationClassPostProcessor implements .BeanDefinitionRegistryPostProcessor
+        ConfigurationClassPostProcessor ....|> .BeanDefinitionRegistryPostProcessor
+        'class EventListenerMethodProcessor implements .SmartInitializingSingleton, .BeanFactoryPostProcessor
+        EventListenerMethodProcessor ....|> .BeanFactoryPostProcessor
+        EventListenerMethodProcessor ..|> SmartInitializingSingleton
+
+    }
+    namespace BeanPostProcessor{
+        class AutowiredAnnotationBeanPostProcessor implements .SmartInstantiationAwareBeanPostProcessor,.MergedBeanDefinitionPostProcessor
+        note bottom of AutowiredAnnotationBeanPostProcessor
+        autowire、value 注解的解析
+        设置到 RootBeanDefinition.externallyManagedConfigMembers字段
+        end note
+        class CommonAnnotationBeanPostProcessor extends .InitDestroyAnnotationBeanPostProcessor implements .InstantiationAwareBeanPostProcessor
+    }
+
+}
+
+together {
+
+
+}
+
+@enduml

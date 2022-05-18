@@ -1,0 +1,38 @@
+@startuml
+
+interface BeanFactory
+interface ListableBeanFactory extends BeanFactory
+interface AutowireCapableBeanFactory extends BeanFactory
+interface HierarchicalBeanFactory extends BeanFactory
+interface ConfigurableBeanFactory extends HierarchicalBeanFactory{
+    + void addBeanPostProcessor(BeanPostProcessor beanPostProcessor)
+    + int getBeanPostProcessorCount();
+}
+interface ConfigurableListableBeanFactory extends ListableBeanFactory, AutowireCapableBeanFactory, ConfigurableBeanFactory
+
+class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements ConfigurableListableBeanFactory, BeanDefinitionRegistry{
+    - List<BeanPostProcessor> beanPostProcessors
+    - Map<String, BeanDefinition> beanDefinitionMap
+
+}
+
+
+interface ApplicationContext extends  ListableBeanFactory, HierarchicalBeanFactory
+interface ConfigurableApplicationContext extends ApplicationContext, Lifecycle
+abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext{
+    - List<BeanFactoryPostProcessor> beanFactoryPostProcessors
+}
+abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory implements AutowireCapableBeanFactory
+
+interface AliasRegistry
+class SimpleAliasRegistry implements AliasRegistry
+class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry{
+    - Map<String, Set<String>> dependentBeanMap
+    - Map<String, Set<String>> dependenciesForBeanMap
+    + void registerDependentBean(String beanName, String dependentBeanName)
+}
+
+abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory
+abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanRegistry
+
+@enduml

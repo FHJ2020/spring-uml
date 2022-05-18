@@ -1,0 +1,21 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+(*) -->1
+--> getSingleton
+
+
+partition getSingleton {
+--> Object singletonObject = this.singletonObjects.get(beanName);
+--> singletonObject = this.earlySingletonObjects.get(beanName)
+--> ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+--> "singletonObject = singletonFactory.getObject();
+this.earlySingletonObjects.put(beanName, singletonObject);
+this.singletonFactories.remove(beanName);"
+
+}
+
+
+-->(*)
+
+@enduml

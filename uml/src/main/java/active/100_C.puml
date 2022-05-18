@@ -1,0 +1,123 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+card "Parse BeanDefinition" #tan{
+    :register PostProcessors BeanDefinition;
+    :register BeanDefinition;
+}
+
+card "Parse BeanDefinition After" #tan{
+    :getBean BeanDefinitionRegistryPostProcessor;
+    :BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry;
+    note
+    **annotation callback**
+    ConfigurationClassPostProcessor
+    end note
+    :getBean BeanFactoryPostProcessor;
+    :BeanFactoryPostProcessor.postProcessBeanFactory;
+    note
+    **annotation callback**
+    EventListenerMethodProcessor
+    end note
+}
+card "getSingleton" {
+    :通过 ObjectFactory 返回不完整对象;
+}
+
+card "Instantiation Before" #skyblue    {
+    :InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation;
+    note
+    **annotation callback**
+    CommonAnnotationBeanPostProcessor
+    end note
+
+}
+
+card "Instantiation"{
+split
+    :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors;
+split again
+    :instanceSupplier;
+split again
+    :FactoryMethod;
+
+endsplit
+    :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
+    :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
+    被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象
+    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
+    ;
+    note
+    if (!this.singletonObjects.containsKey(beanName)) {
+        this.singletonFactories.put(beanName, singletonFactory);
+        this.earlySingletonObjects.remove(beanName);
+        this.registeredSingletons.add(beanName);
+    }
+    end note
+}
+
+card "Instantiation After" #skyblue {
+    :
+    #InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation
+    #InstantiationAwareBeanPostProcessor.postProcessProperties
+    #InstantiationAwareBeanPostProcessor.postProcessPropertyValues
+    ;
+    note
+    按顺序号执行
+    **annotation callback**
+    CommonAnnotationBeanPostProcessor
+    end note
+}
+
+
+card "Initialization Before" #tan {
+    :invokeAwareMethods
+    #BeanNameAware
+    #BeanClassLoaderAware
+    #BeanFactoryAware;
+    :BeanPostProcessor.postProcessBeforeInitialization;
+    note
+        SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
+        **调用aware接口** ApplicationContextAwareProcessor
+        ApplicationListenerDetector
+        BeanPostProcessorChecker
+    end note
+    :applyPropertyValues;
+    note
+    xml方式：解析 beanDefinition时 全部处理完毕
+    annotation方式：在Instantiation After阶段解析类内部的注解，并添加到tPropertyValues中
+    beanDefinition.getPropertyValues()进行依赖注入
+    end note
+
+}
+
+card "Initialization" {
+    :InitializingBean.afterPropertiesSet;
+    :invokeCustomInitMethod(beanName, bean, mbd);
+
+}
+
+card "Initialization After" #tan {
+    :BeanPostProcessor.postProcessAfterInitialization;
+    note
+        SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
+    end note
+}
+card "Use Before"{
+split
+    :registerDisposableBean;
+split again
+    :scope.registerDestructionCallback;
+endsplit
+
+}
+:use;
+
+card "destroy Before" #skyblue {
+
+}
+:"destroy";
+stop
+
+@enduml

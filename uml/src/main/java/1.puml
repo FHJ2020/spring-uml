@@ -1,0 +1,92 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+
+abstract class AbstractApplicationContext{
+    -Set<ApplicationListener<?>> earlyApplicationListeners
+    -Set<ApplicationListener<?>> applicationListeners
+    -Set<ApplicationEvent> earlyApplicationEvents
+}
+
+
+@enduml
+
+@startuml
+
+
+abstract class b{
+    -Set<ApplicationListener<?>> earlyApplicationListeners
+    -Set<ApplicationListener<?>> applicationListeners
+    -Set<ApplicationEvent> earlyApplicationEvents
+}
+
+
+@enduml
+@startuml
+start
+
+
+
+@enduml
+@startuml
+(*) -->"Instantiation Before"
+    -->Instantiation #pink
+    -->Instantiation After
+"Instantiation Before" -r-> 2
+@enduml
+
+
+@startuml
+start
+!$shared = SHARED
+!$nonShared = NON-SHARED
+
+:Minimum Reproducible Example;
+if (Test Question) then (yes)
+  label sp_lab0
+  label lab
+  else
+  label sp_lab3
+  label lab3
+  goto sp_lab0
+endif
+    if (Second Test Question) then (yes)
+        label sp_lab21
+        label lab
+    else
+    :$nonShared;
+    stop
+    endif
+label sp_lab21
+:$shared;
+
+:2;
+@enduml
+
+
+@startuml
+' Split into 4 pages
+
+
+class BaseClass
+
+namespace net.dummy #DDDDDD {
+    .BaseClass <|-- Person
+    Meeting o-- Person
+
+     Meeting -|> .BaseClass
+    .BaseClass <|- Meeting2
+    .BaseClass <|- Meeting3
+    .BaseClass <|- Meeting4
+
+}
+
+namespace net.foo {
+  net.dummy.Person  <|- Person
+  .BaseClass <|-- Person
+
+  net.dummy.Meeting o-- Person
+}
+
+BaseClass <|-- net.unused.Person
+@enduml

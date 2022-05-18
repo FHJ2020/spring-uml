@@ -1,0 +1,24 @@
+@startuml
+'https://plantuml.com/class-diagram
+interface PropertyEditorRegistrar
+class ResourceEditorRegistrar implements PropertyEditorRegistrar
+
+interface PropertyEditorRegistry
+interface BeanWrapper extends ConfigurablePropertyAccessor
+interface ConfigurablePropertyAccessor extends PropertyAccessor, PropertyEditorRegistry, TypeConverter
+abstract class AbstractPropertyAccessor extends TypeConverterSupport implements ConfigurablePropertyAccessor
+abstract class TypeConverterSupport extends PropertyEditorRegistrySupport implements TypeConverter
+class PropertyEditorRegistrySupport implements PropertyEditorRegistry
+
+class BeanWrapperImpl extends AbstractNestablePropertyAccessor implements BeanWrapper
+abstract class AbstractNestablePropertyAccessor extends AbstractPropertyAccessor
+
+
+
+interface PropertyEditor
+class PropertyEditorSupport implements PropertyEditor
+class InputSourceEditor extends PropertyEditorSupport
+class CustomDateEditor extends PropertyEditorSupport
+class ResourceEditor extends PropertyEditorSupport
+
+@enduml

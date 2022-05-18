@@ -1,0 +1,94 @@
+@startuml
+interface InputStreamSource
+interface BeanDefinitionRegistry
+
+abstract class AbstractXmlApplicationContext
+note left
+"[[../active/easy.puml]] "
+end note
+
+interface NamespaceHandlerResolver
+class DefaultNamespaceHandlerResolver
+interface NamespaceHandler
+interface BeanDefinitionDecorator
+
+interface BeanDefinitionParser
+
+
+class ScopedProxyBeanDefinitionDecorator
+
+
+DefaultNamespaceHandlerResolver --|> NamespaceHandlerResolver
+
+ScopedProxyBeanDefinitionDecorator --|> BeanDefinitionDecorator
+
+NamespaceHandler -- BeanDefinitionDecorator : 注册decorator >
+NamespaceHandler -- BeanDefinitionParser : 注册parser >
+NamespaceHandlerResolver -- NamespaceHandler : 根据nameSpace找到handler >
+BeanDefinitionDecorator -- BeanDefinitionHolder : 装饰 >
+BeanDefinitionParser --> BeanDefinitionHolder : 解析并生成
+class AbstractBeanDefinitionReader{
+    + int loadBeanDefinitions(Resource... resources)
+}
+class XmlBeanDefinitionReader{
+    + int loadBeanDefinitions(Resource resource)
+    + int loadBeanDefinitions(EncodedResource encodedResource)
+}
+class DefaultBeanDefinitionDocumentReader{
+    + 4.1 registerBeanDefinitions(Document doc, XmlReaderContext readerContext)
+    # 4.2 void doRegisterBeanDefinitions(Element root)
+    # 4.3 parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate)
+    - 4.4 parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate)
+    # 4.5 importBeanDefinitionResource(Element ele)
+    # 4.6 processAliasRegistration(Element ele)
+    # 4.7 processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate)
+}
+class EncodedResource
+class Document
+interface BeanDefinitionDocumentReader{
+	+void registerBeanDefinitions(Document doc, XmlReaderContext readerContext)
+}
+
+class BeanDefinitionParserDelegate{
+
+    + 5.1 BeanDefinitionHolder parseBeanDefinitionElement(Element ele)
+    + 5.2 BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean)
+    # 5.3 AbstractBeanDefinition createBeanDefinition(@Nullable String className, @Nullable String parentName)
+    + 5.4 AbstractBeanDefinition parseBeanDefinitionElement(Element ele, String beanName, @Nullable BeanDefinition containingBean)
+    + 5.5 AbstractBeanDefinition parseBeanDefinitionAttributes(Element ele, String beanName,@Nullable BeanDefinition containingBean, AbstractBeanDefinition bd)
+    + 5.6 void parseMetaElements(Element ele, BeanMetadataAttributeAccessor attributeAccessor)
+    + 5.7 void parseLookupOverrideSubElements(Element beanEle, MethodOverrides overrides)
+    + 5.8 void parseReplacedMethodSubElements(Element beanEle, MethodOverrides overrides)
+    + 5.9 void parseConstructorArgElements(Element beanEle, BeanDefinition bd)
+    + 5.10 void parsePropertyElements(Element beanEle, BeanDefinition bd)
+    + 5.11 void parseQualifierElements(Element beanEle, AbstractBeanDefinition bd)
+    + 5.12 new BeanDefinitionHolder(BeanDefinition beanDefinition, String beanName, @Nullable String[] aliases)
+
+}
+DefaultBeanDefinitionDocumentReader --|> BeanDefinitionDocumentReader
+
+interface BeanDefinition
+class BeanDefinitionHolder{
+	+BeanDefinition beanDefinition;
+	+String beanName;
+	+String[] aliases;
+}
+class AbstractBeanDefinition{
+
+}
+
+
+AbstractBeanDefinition --|> BeanDefinition
+EncodedResource --|> InputStreamSource
+XmlBeanDefinitionReader --|> AbstractBeanDefinitionReader
+BeanDefinitionParserDelegate -- BeanDefinition : "将Element解析并转换,最终包装成bdh >"
+BeanDefinitionHolder -- BeanDefinition : 持有bd的名字、别名、引用 >
+
+
+AbstractXmlApplicationContext -- XmlBeanDefinitionReader : 1.使用reader加载bd >
+XmlBeanDefinitionReader--EncodedResource : 2.从resource读取bean定义 >
+EncodedResource -- Document : 3.将bean文件定义转换 >
+XmlBeanDefinitionReader -- BeanDefinitionDocumentReader : 4.委托解析document并注册bd >
+BeanDefinitionDocumentReader -- BeanDefinitionParserDelegate : 5.委托解析Element并注册bd >
+
+@enduml

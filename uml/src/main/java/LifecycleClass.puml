@@ -1,0 +1,32 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface Lifecycle{
+    +void start()
+    +void stop()
+    +boolean isRunning()
+}
+interface SmartLifecycle{
+	+int DEFAULT_PHASE = Integer.MAX_VALUE;
+	+default boolean isAutoStartup()
+	+default void stop(Runnable callback)
+	+default int getPhase()
+}
+interface Phased{
+   + int getPhase()
+}
+interface LifecycleProcessor{
+	+void onRefresh();
+	+void onClose();
+}
+interface ConfigurableApplicationContext
+
+SmartLifecycle -u-|> Lifecycle
+SmartLifecycle -u-|> Phased
+LifecycleProcessor -u-|> Lifecycle
+ConfigurableApplicationContext -u-|> Lifecycle
+AbstractApplicationContext -u-|> ConfigurableApplicationContext
+DefaultLifecycleProcessor -u-|> LifecycleProcessor
+AbstractApplicationContext -l-> DefaultLifecycleProcessor : 委托
+
+@enduml

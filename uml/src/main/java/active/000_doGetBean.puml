@@ -1,0 +1,139 @@
+
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+floating note
+getBeanPostProcessorCache().smartInstantiationAware
+end note
+
+
+
+card doGetBean {
+   :sharedInstance = getSingleton(beanName);
+   card #Aquamarine "getSingleton(beanName, true)" {
+   		:Object singletonObject = this.singletonObjects.get(beanName);
+        if (singletonObject!=null) is (yes) then
+            :return singletonObject;
+            kill
+        endif
+
+        if (!isSingletonCurrentlyInCreation(beanName)) is (yes) then
+            :return null singletonObject;
+            note
+            第一次getBean都是从这返回,因为bean还没有开始创建
+            end note
+            kill
+        endif
+
+        :singletonObject = this.earlySingletonObjects.get(beanName);
+        if (singletonObject!=null?) is (yes) then
+            :return singletonObject;
+            kill
+        endif
+        if (!allowEarlyReference?) is (yes) then
+            :return null singletonObject;
+            kill
+        endif
+        :ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+        if (singletonFactory!=null?) is (yes) then
+            #pink:singletonObject = singletonFactory.getObject();
+            card #pink singletonFactory.getObject() {
+                while (smartInstantiationAware data available?)
+                  :exposedObject = bp.getEarlyBeanReference(exposedObject, beanName);
+                endwhile
+                :return exposedObject;
+            }
+            :this.earlySingletonObjects.put(beanName, singletonObject);
+            :this.singletonFactories.remove(beanName);
+            :return singletonObject;
+            note
+            循环引用会从这返回一个未构造完整的对象
+            end note
+            kill
+        endif
+
+   }
+   if (sharedInstance!=null?) is (yes) then
+     :beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+   else (no)
+     if (parentBeanFactory!=null?) is (yes) then
+        :return parentBeanFactory.getBean;
+        stop
+     else (no)
+       :getMergedLocalBeanDefinition(beanName);
+       :checkMergedBeanDefinition(mbd, beanName, args);
+       :handle dependsOn;
+       if (mbd.isSingleton()?) is (yes) then
+            :sharedInstance = getSingleton -> createBean(beanName, mbd, args);
+            card #skyblue getSingleton(beanName,singletonFactory) {
+                :Object singletonObject = this.singletonObjects.get(beanName);
+                if (singletonObject==null?) is (yes) then
+                   :singletonsCurrentlyInCreation.add(beanName);
+                   :singletonObject = singletonFactory.getObject();
+                   note
+                   [[004_createBean.puml createBean]]
+                   end note
+                   :this.singletonsCurrentlyInCreation.remove(beanName);
+                   card "addSingleton(beanName, singletonObject)"{
+                        :this.singletonObjects.put(beanName, singletonObject);
+                        :this.singletonFactories.remove(beanName);
+                        :this.earlySingletonObjects.remove(beanName);
+                        :this.registeredSingletons.add(beanName);
+                   }
+
+
+                   :return beanInstance;
+                else (no)
+                  :false;
+                endif
+            }
+
+            card #tan "beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, mbd)" {
+
+                :String currentlyCreatedBean = this.currentlyCreatedBean.get();
+                if (currentlyCreatedBean != null) then (yes)
+                    :registerDependentBean(beanName, currentlyCreatedBean);
+                endif
+                if (!beanInstance instanceof FactoryBean?) is (yes) then
+                    :return beanInstance;
+                else (no)
+                    if (BeanFactoryUtils.isFactoryDereference(name) &&
+                        beanInstance instanceof FactoryBean?) then (yes)
+                          :return beanInstance;
+                    else (no)
+                        if (factory.isSingleton() && containsSingleton(beanName) ?) is (yes) then
+                            :object = getCachedObjectForFactoryBean(beanName);
+                            if (object == null?) is (yes) then
+                                :object = factory.getObject();
+                                :getBeanPostProcessors().postProcessAfterInitialization;
+                                :this.factoryBeanObjectCache.put(beanName, object);
+                            endif
+                            :return object;
+                        else (no)
+                            :object = factory.getObject();
+                            :getBeanPostProcessors().postProcessAfterInitialization;
+                        endif
+
+                    endif
+                endif
+
+
+            }
+
+       else if(mbd.isPrototype()) then (yes)
+         :123;
+       else
+         :getFromScope;
+       endif
+     endif
+   endif
+   :return adaptBeanInstance(name, beanInstance, requiredType);
+
+}
+
+
+
+stop
+
+@enduml

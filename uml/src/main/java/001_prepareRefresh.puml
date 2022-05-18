@@ -1,0 +1,31 @@
+@startuml
+
+(*) --> refresh()
+partition refresh() {
+    -d-> prepareRefresh
+    -d-> "..."
+    -d-> finishRefresh();
+}
+
+
+prepareRefresh -r-> prepareRefresh()
+
+
+
+partition prepareRefresh() {
+        --> "将 applicationListeners 赋值给 earlyApplicationListeners"
+        note right
+        applicationListeners 即调用refresh之前,
+        调用 context.addApplicationListener 新增的 Listeners
+        end note
+        --> "earlyApplicationEvents 赋值空集合"
+        note right
+        在容器的 multicaster 还未初始化的时候,
+        即pre-fresh时发布的事件就调用 context.publishEvent 发布事件,
+        end note
+}
+
+
+
+
+@enduml

@@ -1,0 +1,61 @@
+
+@startuml
+title BeanDefinition 类结构
+
+'子类
+namespace groupChildren{
+    class AnnotatedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
+    class ConfigurationClassBeanDefinition extends RootBeanDefinition implements AnnotatedBeanDefinition
+    class ClassDerivedBeanDefinition extends RootBeanDefinition
+    class ChildBeanDefinition extends AbstractBeanDefinition
+    class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
+    class BasePackagesBeanDefinition extends GenericBeanDefinition
+    class EntityScanPackagesBeanDefinition extends GenericBeanDefinition
+    class ServletComponentRegisteringPostProcessorBeanDefinition extends GenericBeanDefinition
+    class GenericBeanDefinition extends AbstractBeanDefinition
+}
+
+interface AnnotatedBeanDefinition extends BeanDefinition
+class RootBeanDefinition {
+    - Object beanClass
+    - BeanDefinitionHolder decoratedDefinition
+    - Set<Member> externallyManagedConfigMembers
+}
+RootBeanDefinition ---|> AbstractBeanDefinition
+
+
+
+interface BeanDefinition{
+    + MutablePropertyValues getPropertyValues()
+}
+
+abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition{
+    - MutablePropertyValues propertyValues
+}
+AbstractBeanDefinition::MutablePropertyValues ---> MutablePropertyValues
+
+
+
+
+interface BeanReference extends BeanMetadataElement
+class RuntimeBeanNameReference implements BeanReference
+class RuntimeBeanReference implements BeanReference
+
+interface AttributeAccessor
+abstract class AttributeAccessorSupport implements AttributeAccessor
+class BeanMetadataAttributeAccessor extends AttributeAccessorSupport implements BeanMetadataElement
+class PropertyValue extends BeanMetadataAttributeAccessor{
+	- String name
+	- Object value
+}
+class MutablePropertyValues implements PropertyValues{
+    - List<PropertyValue> propertyValueList
+    - Set<String> processedProperties
+    - boolean converted
+}
+MutablePropertyValues::propertyValueList --> PropertyValue
+interface PropertyValues
+interface  Iterable << PropertyValue >>
+PropertyValues -u-|> Iterable
+
+@enduml

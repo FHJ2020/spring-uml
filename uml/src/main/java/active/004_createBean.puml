@@ -1,0 +1,125 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+floating note
+    MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition
+    InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation
+    BeanPostProcessor.postProcessBeforeInitialization
+end note
+
+:[[000_doGetBean.puml return]];
+:Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+note
+[[./001_resolveBeforeInstantiation.puml resolveBeforeInstantiation]]
+end note
+if (bean!=null?) is (yes) then
+    :return bean;
+else (no)
+    :Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+
+    card #Aquamarine "doCreateBean(beanName, mbdToUse, args);" {
+        :instanceWrapper = createBeanInstance(beanName, mbd, args);
+        note
+        [[./003_createBeanInstance.puml createBeanInstance]]
+        end note
+        :Object bean = instanceWrapper.getWrappedInstance();
+        card #lightskyblue "applyMergedBeanDefinitionPostProcessors" {
+            if (mbd.postProcessed==false?) is (yes) then
+                while (getBeanPostProcessorCache().mergedDefinition 有数据?) is (yes)
+                    :postProcessMergedBeanDefinition(mbd, beanType, beanName);
+                    note
+                    loc
+                    [[../clz/BeanPostProcessor.puml ApplicationListenerDetector]]
+                    [[../clz/BeanPostProcessor.puml AutowiredAnnotationBeanPostProcessor]]
+                    [[../clz/BeanPostProcessor.puml CommonAnnotationBeanPostProcessor]]
+                    [[../clz/BeanPostProcessor.puml InitDestroyAnnotationBeanPostProcessor]]
+                    [[../clz/BeanPostProcessor.puml ScheduledAnnotationBeanPostProcessor]]
+                    end note
+                endwhile
+            endif
+                :mbd.postProcessed = true;
+        }
+        card #LightYellow "circular references" {
+            if (mbd.isSingleton() && this.allowCircularReferences &&
+                isSingletonCurrentlyInCreation(beanName?) then (yes)
+                if (!this.singletonObjects.containsKey(beanName)) then (yes)
+                    :this.singletonFactories.put(beanName, singletonFactory);
+                    note
+                    singletonFactory ->
+                    getEarlyBeanReference(beanName, mbd, bean)
+                    放入一个ObjectFactory
+                    end note
+                    :this.earlySingletonObjects.remove(beanName);
+                    :this.registeredSingletons.add(beanName);
+                endif
+
+            endif
+        }
+        card #lightgreen "populateBean(beanName, mbd, instanceWrapper);" {
+            if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()?) is (yes) then
+               while(instantiationAware 有数据)
+                    if (postProcessAfterInstantiation == false?) is (yes) then
+                        :return;
+                    endif
+                endwhile
+                note
+                    #字段注入
+                    #未找到任何实现
+                    #返回false 下一个processor不会处理
+                end note
+            endif
+            :resolvedAutowireMode handle;
+            if (hasInstantiationAwareBeanPostProcessors()?) is (yes) then
+              while (instantiationAware has data?)
+                :PropertyValues pvsToUse = bp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
+                :pvsToUse=兼容postProcessPropertyValues;
+                :pvs = pvsToUse;
+              endwhile
+            endif
+            :needsDepCheck;
+            if (pvs != null)
+                :applyPropertyValues(beanName, mbd, bw, pvs);
+            endif
+        }
+        card #lightskyblue initializeBean {
+            :invokeAwareMethods(beanName, bean);
+            note
+            #BeanNameAware
+            #BeanClassLoaderAware
+            #BeanFactoryAware
+            end note
+            :applyBeanPostProcessorsBeforeInitialization;
+            card invokeInitMethods {
+                :InitializingBean.afterPropertiesSet;
+                :invokeCustomInitMethod(beanName, bean, mbd);
+            }
+            :applyBeanPostProcessorsAfterInitialization;
+        }
+        :earlySingletonExposure handle;
+        card #LightGray registerDisposableBeanIfNecessary{
+            if (mbd.isSingleton()?) is (yes) then
+             :SingletonBeanRegistry.registerDisposableBean(beanName,
+             new DisposableBeanAdapter(
+             bean, beanName, mbd, getBeanPostProcessorCache().destructionAware, acc);
+             note
+                 :DisposableBeanAdapter 适配destroy
+                 #class 中的destroy方法
+                 #DestructionAwareBeanPostProcessor
+             end note
+            else (no)
+              :scope.registerDestructionCallback;
+            endif
+
+
+        }
+
+
+
+    }
+
+
+    :return beanInstance;
+endif
+stop
+
+@enduml

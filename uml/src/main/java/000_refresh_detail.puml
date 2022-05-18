@@ -1,0 +1,61 @@
+@startuml
+
+(*) --> refresh()
+partition refresh() {
+    -d-> prepareRefresh
+    -d-> obtainFreshBeanFactory
+    note right
+    构造beanFactory
+    实例化用户BeanDefinition
+    实例化Spring BeanDefinition(BeanFactoryPostProcessor)
+    end note
+    -d-> prepareBeanFactory
+    note right
+    添加xml autowire模式下,不注入的依赖接口
+    添加
+    注册手动注册单例
+    end note
+    -d-> postProcessBeanFactory(beanFactory)
+    -d-> invokeBeanFactoryPostProcessors(beanFactory)
+    note right
+    执行步骤
+    1.从 context.beanFactoryPostProcessors(手动调用context.addBeanFactoryPostProcessor添加的)
+    中筛选出 BeanDefinitionRegistryPostProcessor,忽略PriorityOrdered,Ordered接口,以添加顺序调用 postProcessBeanDefinitionRegistry
+    2.从 beanDefinition 和 manualSingleton 中筛选 BeanDefinitionRegistryPostProcessor
+      ①调用postProcessBeanDefinitionRegistry方法时,才会通过getBean方法,创建Bean,筛序时不调用getBean
+      不使用getBean是为了,避免直接实例化导致执行顺序有问题
+      ②通过getBeanNamesForType方法,获取processor的name,根据name与 beanDefinition 判断是否声明某接口
+      ③因为 postProcessBeanDefinitionRegistry 的执行,有可能会新增 BeanDefinitionRegistryPostProcessor 的 beanDefinition
+      所以每次筛选都是重新调用 getBeanNamesForType方法获取 BeanDefinitionRegistryPostProcessor的name
+      1) 筛选出声明 PriorityOrdered 接口的,并排序,调用  postProcessBeanDefinitionRegistry
+      2) 筛选出声明 Ordered 接口的,并排序,调用  postProcessBeanDefinitionRegistry
+      3) 筛选出没有声明 Ordered 相关接口的,调用 postProcessBeanDefinitionRegistry
+    3.调用 BeanDefinitionRegistryPostProcessor的 postProcessBeanFactory
+    4.调用 beanFactoryPostProcessors中,非BeanDefinitionRegistryPostProcessor的 postProcessBeanFactory
+
+    5.筛选出剩余的 BeanFactoryPostProcessor,并过滤掉已经调用过的(BeanDefinitionRegistryPostProcessor)
+      1) 筛选出声明 PriorityOrdered 接口的,并排序,调用  postProcessBeanFactory
+      2) 筛选出声明 Ordered 接口的,并排序,调用  postProcessBeanFactory
+      3) 没有声明 Ordered 相关接口的,调用 postProcessBeanFactory
+
+    注意:
+    对BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry的调用会保证,
+    此方法新添加的BeanDefinitionRegistryPostProcessor和BeanFactoryPostProcessor的相关方法也被调用,
+    迭代保证.
+    postProcessBeanDefinitionRegistry中的参数是BeanDefinitionRegistry,提供 registerBeanDefinition
+    removeBeanDefinition,getBeanDefinition,可以新增,删除,修改 BeanDefinition
+
+    对BeanFactoryPostProcessor.postProcessBeanFactory中新增的BeanFactoryPostProcessor不会执行,
+    postProcessBeanFactory中的参数是 ConfigurableListableBeanFactory 只提供getBeanDefinition,
+    只能修改 BeanDefinition.虽然实例是DefaultListableBeanFactory也能新增
+    end note
+    -d-> registerBeanPostProcessors(beanFactory);
+    -d-> initMessageSource();
+    -d-> initApplicationEventMulticaster();
+    -d-> onRefresh();
+    -d-> registerListeners();
+    -d-> finishBeanFactoryInitialization(beanFactory)
+    -d-> finishRefresh();
+}
+
+@enduml

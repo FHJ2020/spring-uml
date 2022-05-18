@@ -1,0 +1,65 @@
+
+@startuml
+title bean的定义为Proxy,最终会注册2个BeanDefinition一个是原始的,一个是代理的,只是bean的名字不同
+
+abstract class ScopedProxyUtils{
+	-static String TARGET_NAME_PREFIX = "scopedTarget."
+	+static BeanDefinitionHolder createScopedProxy(..)
+    +static String getTargetBeanName(String originalBeanName)
+    +static String getOriginalBeanName(@Nullable String targetBeanName)
+    +static boolean isScopedTarget(@Nullable String beanName)
+}
+note bottom
+getTargetBeanName 生成代理bdh的beanName
+createScopedProxy 生成代理bdh
+end note
+interface BeanDefinitionRegistry
+class DefaultListableBeanFactory implements BeanDefinitionRegistry
+
+BeanDefinitionRegistry --> BeanDefinition : 注册到factory中
+class BeanDefinitionHolder{
+	+BeanDefinition beanDefinition
+	+String beanName
+	+String[] aliases
+}
+interface BeanDefinitionDecorator{
+    + BeanDefinitionHolder decorate(Node node, BeanDefinitionHolder definition, ParserContext parserContext)
+}
+class ScopedProxyBeanDefinitionDecorator implements BeanDefinitionDecorator{
+    + BeanDefinitionHolder decorate(Node node, BeanDefinitionHolder definition, ParserContext parserContext)
+}
+
+class RootBeanDefinition implements BeanDefinition{
+    - Object beanClass
+    - BeanDefinitionHolder decoratedDefinition
+}
+ScopedProxyBeanDefinitionDecorator::decorate --> ScopedProxyUtils : 调用并生成代理bdh完成装饰
+interface BeanDefinition
+
+BeanDefinitionHolder -- BeanDefinition
+
+object BeanDefinitionRegistry_Object
+object 原BeanDefinition_Object
+object 原BeanDefinitionHolder_Object{
+    beanDefinition
+}
+原BeanDefinitionHolder_Object::beanDefinition --> 原BeanDefinition_Object
+object 装饰后的BeanDefinitionHolder_Object{
+    beanDefinition=代理RootBeanDefinition_Object
+}
+object 代理RootBeanDefinition_Object{
+    ==beanClass=ScopedProxyFactoryBean.class
+    decoratedDefinition=原BeanDefinitionHolder_Object
+}
+
+ScopedProxyBeanDefinitionDecorator -- BeanDefinitionHolder : decorate 装饰 >
+装饰后的BeanDefinitionHolder_Object --> 代理RootBeanDefinition_Object
+代理RootBeanDefinition_Object --> 原BeanDefinitionHolder_Object
+BeanDefinitionRegistry_Object --> 原BeanDefinition_Object : 注册原bd
+note on link : "注册的名字为 scopedTarget. +beanName"
+
+BeanDefinitionRegistry_Object --> 代理RootBeanDefinition_Object : 注册代理bd
+note on link : "注册的名字为beanName"
+
+@enduml
+

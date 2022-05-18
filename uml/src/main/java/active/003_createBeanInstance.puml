@@ -1,0 +1,55 @@
+
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+floating note
+    BeanPostProcessorCache.smartInstantiationAware
+    BeanPostProcessorCache.mergedDefinition
+
+    SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
+
+
+end note
+:[[./004_createBean.puml return]];
+
+    if(instanceSupplier != null) then (yes)
+        :obtainFromSupplier(instanceSupplier, beanName);
+    else if(mbd.getFactoryMethodName() != null) then (yes)
+        :instantiateUsingFactoryMethod(beanName, mbd, args);
+    else if(mbd.resolvedConstructorOrFactoryMethod != null) then (yes)
+        if(mbd.constructorArgumentsResolved) then (yes)
+            :autowireConstructor(beanName, mbd, null, null);
+        else (no)
+            :instantiateBean(beanName, mbd);
+        endif
+    else if(hasInstantiationAwareBeanPostProcessors()) then (yes)
+        while (smartInstantiationAware有数据?)
+          :determineCandidateConstructors(beanClass, beanName);
+          if(Constructor!=null) then (yes)
+            :return Constructor<?>[];
+            break;
+          endif
+        endwhile
+        	if (ctors != null || mbd.getResolvedAutowireMode() == AUTOWIRE_CONSTRUCTOR ||
+      mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args)) then (yes)
+          :autowireConstructor(beanName, mbd, ctors, args);
+        endif
+    else if(mbd.getPreferredConstructors()!=null) then (yes)
+        :autowireConstructor(beanName, mbd, ctors, null);
+    else
+    card  "instantiateBean(beanName, mbd)" {
+        :beanInstance=InstantiationStrategy.instantiationStrategy;
+        :new BeanWrapperImpl(beanInstance);
+        :initBeanWrapper(bw);
+    }
+    endif
+
+
+    :;
+
+
+stop
+
+@enduml

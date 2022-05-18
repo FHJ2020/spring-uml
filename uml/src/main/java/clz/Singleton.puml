@@ -1,0 +1,10 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface AliasRegistry
+class SimpleAliasRegistry implements AliasRegistry
+class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry
+
+
+
+@enduml

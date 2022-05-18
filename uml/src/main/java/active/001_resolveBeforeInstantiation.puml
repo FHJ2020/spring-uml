@@ -1,0 +1,44 @@
+
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+floating note
+   BeanPostProcessorCache.instantiationAware
+
+   1.InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation
+   只有一个processor会起作用,第一个返回非null的起作用
+   2.BeanPostProcessor.postProcessAfterInitialization
+   对前一个处理结果进行再处理
+
+end note
+:[[./004_createBean.puml return]];
+:bean=null;
+if (hasInstantiationAwareBeanPostProcessors()) then (yes)
+    while(instantiationAware有数据) is (yes)
+         :postProcessBeforeInstantiation;
+         if(check bean) then (not null)
+            :return not null bean;
+            break;
+         else (null)
+         endif
+    endwhile
+    :null or not null bean;
+
+    if(check bean) then (not null)
+        while(getBeanPostProcessors()有数据) is (yes)
+              :postProcessAfterInitialization;
+               if(check bean) then (null)
+                  :return 前一次的 not null bean;
+                  break;
+               else (not null)
+               endif
+        endwhile
+    endif
+
+
+endif
+
+stop
+
+@enduml

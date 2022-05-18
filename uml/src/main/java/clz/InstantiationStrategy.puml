@@ -1,0 +1,6 @@
+@startuml
+'https://plantuml.com/class-diagram
+interface InstantiationStrategy
+class CglibSubclassingInstantiationStrategy extends SimpleInstantiationStrategy
+class SimpleInstantiationStrategy implements InstantiationStrategy
+@enduml

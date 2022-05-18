@@ -1,0 +1,69 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource
+abstract class AbstractPrototypeBasedTargetSource extends AbstractBeanFactoryBasedTargetSource
+class PrototypeTargetSource extends AbstractPrototypeBasedTargetSource
+class SimpleBeanTargetSource extends AbstractBeanFactoryBasedTargetSource
+abstract class AbstractBeanFactoryBasedTargetSource implements TargetSource
+abstract class AbstractPoolingTargetSource extends AbstractPrototypeBasedTargetSource implements PoolingConfig
+class CommonsPool2TargetSource extends AbstractPoolingTargetSource
+
+interface TargetSource extends TargetClassAware
+abstract class AopUtils{
+	+ static boolean isAopProxy(@Nullable Object object)
+	+ static boolean isJdkDynamicProxy(@Nullable Object object)
+	+ static boolean isCglibProxy(@Nullable Object object)
+}
+interface TargetClassAware {
+	+ Class<?> getTargetClass();
+}
+interface AopInfrastructureBean
+note top
+标记接口,所有标记这个接口的类,Spring
+不会使用自动代理,即使pointcut匹配
+end note
+
+class DefaultAopProxyFactory implements AopProxyFactory
+class ScopedObject
+interface Advised extends TargetClassAware
+class AdvisedSupport extends ProxyConfig implements Advised
+class ProxyCreatorSupport extends AdvisedSupport{
+    - AopProxyFactory aopProxyFactory
+}
+class ProxyFactory extends ProxyCreatorSupport
+class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean
+class AspectJProxyFactory extends ProxyCreatorSupport
+interface FactoryBean
+note top
+BeanFactory.FACTORY_BEAN_PREFIX="&"
+所有注册到容器中的 factoryBean 的名字前缀
+前缀+beanName获取factoryBean实例,
+beanName获取factoryBean创建的实例
+end note
+
+interface TransactionalProxy extends SpringProxy
+interface SpringProxy
+note top
+所有Spring的AOP代理对象都会实现,标记接口
+可以用来检查代理对象是不是生成的
+end note
+AopUtils -- SpringProxy
+
+class ProxyConfig{
+	- boolean proxyTargetClass = false;
+	- boolean optimize = false;
+	- boolean opaque = false;
+	- boolean exposeProxy = false;
+	- boolean frozen = false;
+	+ void copyFrom(ProxyConfig other)
+}
+skinparam GroupInheritance 4
+class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean,AopInfrastructureBean{
+
+}
+
+FactoryBean --> Bean : createBean
+
+
+@enduml
