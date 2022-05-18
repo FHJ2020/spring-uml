@@ -32,7 +32,12 @@ interface SmartInstantiationAwareBeanPostProcessor extends InstantiationAwareBea
     + Object getEarlyBeanReference(Object bean, String beanName)
 }
 
-class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareBeanPostProcessor, MergedBeanDefinitionPostProcessor
+class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareBeanPostProcessor, MergedBeanDefinitionPostProcessor{
+    + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+    + Object postProcessBeforeInitialization(Object bean, String beanName)
+    + void postProcessBeforeDestruction(Object bean, String beanName)
+    + boolean requiresDestruction(Object bean)
+}
 
 
 
@@ -58,15 +63,22 @@ interface BeanFactoryPostProcessor{
 interface BeanDefinitionRegistryPostProcessor extends BeanFactoryPostProcessor{
     + void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
 }
-note right
+note bottom of BeanFactoryPostProcessor
 在BeanDefinition注册后,对BeanDefinition做进一步处理
 
 end note
 
 namespace abstractApplicationContext.default{
-    'class ApplicationContextAwareProcessor implements .BeanPostProcessor
+    class ApplicationContextAwareProcessor{
+        + Object postProcessBeforeInitialization(Object bean, String beanName)
+    }
     ApplicationContextAwareProcessor .u.....|> .BeanPostProcessor
-    'class ApplicationListenerDetector implements .DestructionAwareBeanPostProcessor, .MergedBeanDefinitionPostProcessor
+    class ApplicationListenerDetector{
+        + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+        + Object postProcessAfterInitialization(Object bean, String beanName)
+        + void postProcessBeforeDestruction(Object bean, String beanName)
+        + boolean requiresDestruction(Object bean)
+    }
     ApplicationListenerDetector .u.....|> .DestructionAwareBeanPostProcessor
     ApplicationListenerDetector .u.....|> .MergedBeanDefinitionPostProcessor
     note bottom of ApplicationListenerDetector
@@ -78,26 +90,59 @@ namespace abstractApplicationContext.default{
     调用applicationContext.addApplicationListener添加到监听器集合中
     end note
 
+    class BeanPostProcessorChecker implements .BeanPostProcessor
 }
 
 
 namespace contextHandler{
     namespace BeanFactoryPostProcessor {
-        interface SmartInitializingSingleton
-        'class ConfigurationClassPostProcessor implements .BeanDefinitionRegistryPostProcessor
+        interface SmartInitializingSingleton{
+            void afterSingletonsInstantiated()
+        }
+        note bottom
+        DefaultListableBeanFactory#preInstantiateSingletons 中执行
+        end note
+        class ConfigurationClassPostProcessor{
+            + void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
+            + void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+        }
         ConfigurationClassPostProcessor ....|> .BeanDefinitionRegistryPostProcessor
-        'class EventListenerMethodProcessor implements .SmartInitializingSingleton, .BeanFactoryPostProcessor
+
+        class EventListenerMethodProcessor {
+            + void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+            + void afterSingletonsInstantiated()
+        }
+        note bottom
+        @EventListener
+        end note
         EventListenerMethodProcessor ....|> .BeanFactoryPostProcessor
         EventListenerMethodProcessor ..|> SmartInitializingSingleton
 
     }
     namespace BeanPostProcessor{
-        class AutowiredAnnotationBeanPostProcessor implements .SmartInstantiationAwareBeanPostProcessor,.MergedBeanDefinitionPostProcessor
+        class AutowiredAnnotationBeanPostProcessor implements .SmartInstantiationAwareBeanPostProcessor,.MergedBeanDefinitionPostProcessor{
+            + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+            + void resetBeanDefinition(String beanName)
+            + Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, final String beanName)
+            + PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName)
+
+        }
         note bottom of AutowiredAnnotationBeanPostProcessor
         autowire、value 注解的解析
         设置到 RootBeanDefinition.externallyManagedConfigMembers字段
         end note
-        class CommonAnnotationBeanPostProcessor extends .InitDestroyAnnotationBeanPostProcessor implements .InstantiationAwareBeanPostProcessor
+        class CommonAnnotationBeanPostProcessor extends .InitDestroyAnnotationBeanPostProcessor implements .InstantiationAwareBeanPostProcessor{
+            + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+            + void resetBeanDefinition(String beanName)
+            + PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName)
+            + PropertyValues postProcessPropertyValues(PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName)
+            + Object postProcessBeforeInitialization(Object bean, String beanName)
+            + void postProcessBeforeDestruction(Object bean, String beanName)
+            + boolean requiresDestruction(Object bean)
+        }
+        note bottom of CommonAnnotationBeanPostProcessor
+        @PostConstruct、@PreDestroy、@Resource
+        end note
     }
 
 }

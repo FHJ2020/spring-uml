@@ -7,6 +7,15 @@ card "Parse BeanDefinition" #tan{
     :register BeanDefinition;
 }
 
+split
+card "Parse BeanDefinition After 1" #tan{
+:1;
+:2;
+:3;
+:4;
+}
+split again
+
 card "Parse BeanDefinition After" #tan{
     :getBean BeanDefinitionRegistryPostProcessor;
     :BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry;
@@ -16,20 +25,27 @@ card "Parse BeanDefinition After" #tan{
     end note
     :getBean BeanFactoryPostProcessor;
     :BeanFactoryPostProcessor.postProcessBeanFactory;
+    :EventListenerMethodProcessor;
     note
+    **default**
+    ApplicationListenerDetector
     **annotation callback**
     EventListenerMethodProcessor
+    ConfigurationClassPostProcessor
     end note
 }
+endsplit
+
 card "getSingleton" {
-    :通过 ObjectFactory 返回不完整对象;
+    :通过 ObjectFactory 返回不完整对象
+    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
+    ;
 }
 
 card "Instantiation Before" #skyblue    {
     :InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation;
     note
     **annotation callback**
-    CommonAnnotationBeanPostProcessor
     end note
 
 }
@@ -39,6 +55,10 @@ split
     :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
     对构造函数进行拦截
     ;
+    note
+    **annotation callback**
+    AutowiredAnnotationBeanPostProcessor
+    end note
 split again
     :instanceSupplier;
 split again
@@ -46,6 +66,11 @@ split again
 
 endsplit
     :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
+    note
+    **annotation callback**
+    AutowiredAnnotationBeanPostProcessor
+    CommonAnnotationBeanPostProcessor
+    end note
     :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
     被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象
     SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference对早期引用进行拦截
@@ -60,14 +85,18 @@ endsplit
 }
 
 card "Instantiation After" #skyblue {
-    :
-    #InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation
-    #InstantiationAwareBeanPostProcessor.postProcessProperties
-    #InstantiationAwareBeanPostProcessor.postProcessPropertyValues
-    ;
+    :InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation;
+    :InstantiationAwareBeanPostProcessor.postProcessProperties;
     note
-    按顺序号执行
     **annotation callback**
+    AutowiredAnnotationBeanPostProcessor
+    CommonAnnotationBeanPostProcessor
+    end note
+    :InstantiationAwareBeanPostProcessor.postProcessPropertyValues;
+
+    note
+    **annotation callback**
+    AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     end note
 }
@@ -81,9 +110,12 @@ card "Initialization Before" #tan {
     :BeanPostProcessor.postProcessBeforeInitialization;
     note
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
-        **调用aware接口** ApplicationContextAwareProcessor
-        ApplicationListenerDetector
+        **default**
+        ApplicationContextAwareProcessor
         BeanPostProcessorChecker
+        **annotation callback**
+        CommonAnnotationBeanPostProcessor
+
     end note
     :applyPropertyValues;
     note
@@ -104,6 +136,8 @@ card "Initialization After" #tan {
     :BeanPostProcessor.postProcessAfterInitialization;
     note
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
+        **default**
+        ApplicationListenerDetector
     end note
 }
 card "Use Before"{
@@ -117,7 +151,13 @@ endsplit
 :use;
 
 card "destroy Before" #skyblue {
-
+    :DestructionAwareBeanPostProcessor.postProcessBeforeDestruction;
+    note
+    **default**
+    ApplicationListenerDetector
+    **annotation callback**
+    CommonAnnotationBeanPostProcessor
+    end note
 }
 :"destroy";
 stop
