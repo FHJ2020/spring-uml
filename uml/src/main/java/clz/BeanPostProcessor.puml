@@ -107,6 +107,8 @@ namespace contextHandler{
             + void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
         }
         note bottom
+        ConfigurationClassUtils.checkConfigurationClassCandidate -> ConfigurationClassParser
+        #从已经注册beanDefinitions中,筛选出有@Configuration注解的bd
         @Component、@ComponentScan、@Import、@ImportResource
         end note
         ConfigurationClassPostProcessor ....|> .BeanDefinitionRegistryPostProcessor

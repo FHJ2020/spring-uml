@@ -68,7 +68,7 @@ end note
 class AnnotationConfigBeanDefinitionParser implements BeanDefinitionParser
 note top of AnnotationConfigBeanDefinitionParser
 处理annotation-config
-注册注解处理器的BeanDefinition
+注册注解处理器的BeanDefinition,不解析任何注解
  ConfigurationClassPostProcessor
  AutowiredAnnotationBeanPostProcessor
  CommonAnnotationBeanPostProcessor
@@ -85,12 +85,7 @@ bd.role=ROLE_INFRASTRUCTURE
 @PersistenceContext
 @PersistenceUnit
 
-**common**
-@Lazy
-@Primary
-@DependsOn
-@Role
-@Description
+
 end note
 
 class AopNamespaceHandler extends NamespaceHandlerSupport
