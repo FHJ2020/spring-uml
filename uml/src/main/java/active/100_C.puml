@@ -84,6 +84,7 @@ split again
     :FactoryMethod;
 
 endsplit
+    :实例已经构造,还未调用lifecycle相关方法、未依赖注入;
     :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
     note
     **default**
@@ -91,6 +92,7 @@ endsplit
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
+    解析注解并放入rbd.externallyManagedXXX字段中
     end note
     :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
     被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象

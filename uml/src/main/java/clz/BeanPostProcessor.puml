@@ -32,12 +32,6 @@ interface SmartInstantiationAwareBeanPostProcessor extends InstantiationAwareBea
     + Object getEarlyBeanReference(Object bean, String beanName)
 }
 
-class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareBeanPostProcessor, MergedBeanDefinitionPostProcessor{
-    + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
-    + Object postProcessBeforeInitialization(Object bean, String beanName)
-    + void postProcessBeforeDestruction(Object bean, String beanName)
-    + boolean requiresDestruction(Object bean)
-}
 
 
 
@@ -110,6 +104,7 @@ namespace contextHandler{
         ConfigurationClassUtils.checkConfigurationClassCandidate -> ConfigurationClassParser
         #从已经注册beanDefinitions中,筛选出有@Configuration注解的bd
         @Component、@ComponentScan、@Import、@ImportResource
+        @PropertySources
         end note
         ConfigurationClassPostProcessor ....|> .BeanDefinitionRegistryPostProcessor
 
@@ -133,10 +128,35 @@ namespace contextHandler{
 
         }
         note bottom of AutowiredAnnotationBeanPostProcessor
-        autowire、value 注解的解析
+        **postProcessMergedBeanDefinition**
+        对 @Autowired、@Value 注解的解析,添加到 rbd.externallyManagedConfigMembers 字段中
+        ,注入依赖
         设置到 RootBeanDefinition.externallyManagedConfigMembers字段
         end note
-        class CommonAnnotationBeanPostProcessor extends .InitDestroyAnnotationBeanPostProcessor implements .InstantiationAwareBeanPostProcessor{
+
+        class InitDestroyAnnotationBeanPostProcessor implements .DestructionAwareBeanPostProcessor, .MergedBeanDefinitionPostProcessor{
+            - Class<? extends Annotation> initAnnotationType;
+            - Class<? extends Annotation> destroyAnnotationType;
+
+            + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
+            + Object postProcessBeforeInitialization(Object bean, String beanName)
+            + void postProcessBeforeDestruction(Object bean, String beanName)
+            + boolean requiresDestruction(Object bean)
+        }
+        note top of InitDestroyAnnotationBeanPostProcessor
+        解析lifecycle注解
+        子类CommonAnnotationBeanPostProcessor
+        使用@PostConstruct、@PreDestroy作为默认lifecycle注解
+        **修改**
+        annotation-config=false
+        #手动注入annotation-config相关processor,把CommonAnnotationBeanPostProcessor替换
+        #用BeanDefinitionRegistryPostProcessor,将CommonAnnotationBeanPostProcessor删除
+        新增自定义的
+        #在processor生效前,getBean获取并修改里面的types
+
+        end note
+
+        class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBeanPostProcessor implements .InstantiationAwareBeanPostProcessor{
             + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
             + void resetBeanDefinition(String beanName)
             + PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName)
@@ -146,15 +166,23 @@ namespace contextHandler{
             + boolean requiresDestruction(Object bean)
         }
         note bottom of CommonAnnotationBeanPostProcessor
-        @PostConstruct、@PreDestroy、@Resource
+        @PostConstruct、@PreDestroy、
+        @Resource、@Resource上的@Lazy
+        **postProcessMergedBeanDefinition**
+        将上面相关注解解析后添加到rbd的externallyManagedXXX字段中
         end note
     }
 
 }
 
-together {
 
-
-}
+'Property
+abstract class PropertyResourceConfigurer extends PropertiesLoaderSupport implements BeanFactoryPostProcessor
+abstract class PlaceholderConfigurerSupport extends PropertyResourceConfigurer
+class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerSupport
+note bottom
+只处理已经解析的属性——beanDefinition中已经赋值的属性
+未赋值的属性如字段注解@Value会在
+end note
 
 @enduml

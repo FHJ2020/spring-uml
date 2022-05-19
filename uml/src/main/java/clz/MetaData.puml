@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface MetadataReader{
+	+ Resource getResource()
+	+ ClassMetadata getClassMetadata()
+	+ AnnotationMetadata getAnnotationMetadata()
+}
+class SimpleMetadataReader implements MetadataReader
+
+interface AnnotationMetadata extends ClassMetadata, AnnotatedTypeMetadata
+
+class SimpleAnnotationMetadata implements AnnotationMetadata
+
+class SimpleAnnotationMetadataReadingVisitor extends ClassVisitor
+
+class StandardClassMetadata implements ClassMetadata
+class StandardAnnotationMetadata extends StandardClassMetadata implements AnnotationMetadata{
+    + MergedAnnotations mergedAnnotations
+    + boolean nestedAnnotationsAsMap
+    + Set<String> annotationTypes
+}
+@enduml

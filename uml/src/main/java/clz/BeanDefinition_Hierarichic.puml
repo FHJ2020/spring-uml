@@ -5,6 +5,10 @@ title BeanDefinition 类结构
 '子类
 namespace groupChildren{
     abstract class AbstractBeanDefinition
+    class GenericBeanDefinition
+    note bottom of GenericBeanDefinition
+    xml定义的bean
+    end note
     class AnnotatedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
     class ConfigurationClassBeanDefinition extends RootBeanDefinition implements AnnotatedBeanDefinition
     class ClassDerivedBeanDefinition extends RootBeanDefinition
@@ -33,7 +37,14 @@ class RootBeanDefinition {
     - Object beanClass
     - BeanDefinitionHolder decoratedDefinition
     - Set<Member> externallyManagedConfigMembers
+    - Set<String> externallyManagedInitMethods
+    - Set<String> externallyManagedDestroyMethods
 }
+note top of RootBeanDefinition
+@PostConstruct解析后会被添加到 externallyManagedInitMethods
+@PreDestroy解析后会被添加到 externallyManagedDestroyMethods
+@Resource解析后,会被添加到 externallyManagedConfigMembers
+end note
 RootBeanDefinition ---|> AbstractBeanDefinition
 
 

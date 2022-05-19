@@ -35,4 +35,10 @@ class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements Single
 abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory
 abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanRegistry
 
+class GenericApplicationContext extends AbstractApplicationContext implements BeanDefinitionRegistry
+class AnnotationConfigApplicationContext extends GenericApplicationContext implements AnnotationConfigRegistry
+interface AnnotationConfigRegistry{
+	+ void register(Class<?>... componentClasses)
+	+ void scan(String... basePackages)
+}
 @enduml

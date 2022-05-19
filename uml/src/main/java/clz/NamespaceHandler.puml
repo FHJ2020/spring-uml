@@ -67,8 +67,9 @@ note bottom of ComponentScanBeanDefinitionParser
 end note
 class AnnotationConfigBeanDefinitionParser implements BeanDefinitionParser
 note top of AnnotationConfigBeanDefinitionParser
+**不解析任何注解**
 处理annotation-config
-注册注解处理器的BeanDefinition,不解析任何注解
+注册注解处理器的BeanDefinition
  ConfigurationClassPostProcessor
  AutowiredAnnotationBeanPostProcessor
  CommonAnnotationBeanPostProcessor
@@ -93,12 +94,7 @@ class MvcNamespaceHandler extends NamespaceHandlerSupport
 
 
 
-interface MetadataReader{
-	+ Resource getResource()
-	+ ClassMetadata getClassMetadata()
-	+ AnnotationMetadata getAnnotationMetadata()
-}
-class SimpleMetadataReader implements MetadataReader
+
 
 
 class ClassPathScanningCandidateComponentProvider{
@@ -127,7 +123,7 @@ note bottom of ClassPathBeanDefinitionScanner
 scope-resolver、scoped-proxy、exclude-filter、
 include-filter、type、expression 赋值给对应的属性
 **注解属性处理**
-#扫描class文件,将有@Component注解的class,转成ScannedGenericBeanDefinition
+#扫描class文件,将有@Component注解的class,解析成ScannedGenericBeanDefinition
 #解析ScannedGenericBeanDefinition中的@Scope注解,赋值给对应的属性([[./ScopeProxy.puml proxy相关处理]])
 #AnnotationBeanNameGenerator对ScannedGenericBeanDefinition生成beanName
 #默认值赋值处理 BeanDefinitionDefaults
@@ -160,10 +156,7 @@ class AnnotationScopeMetadataResolver implements ScopeMetadataResolver{
 	+ Class<? extends Annotation> scopeAnnotationType = Scope.class;
 }
 AnnotationScopeMetadataResolver::defaultProxyMode -- ScopedProxyMode
-interface AnnotationMetadata extends ClassMetadata, AnnotatedTypeMetadata
-class SimpleAnnotationMetadata implements AnnotationMetadata
 
-class SimpleAnnotationMetadataReadingVisitor extends ClassVisitor
 
 
 
