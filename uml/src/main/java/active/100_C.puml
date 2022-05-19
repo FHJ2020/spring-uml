@@ -4,7 +4,7 @@
 start
 card "Parse BeanDefinition" #tan{
     :resolve NamespaceHandler;
-    note
+    note left
     NamespaceHandlerResolver.resolve
     handler默认定义位置 META-INF/spring.handlers
     NamespaceHandler
@@ -24,14 +24,6 @@ card "Parse BeanDefinition" #tan{
     :register BeanDefinition;
 }
 
-split
-card "Parse BeanDefinition After 1" #tan{
-:1;
-:2;
-:3;
-:4;
-}
-split again
 
 card "Parse BeanDefinition After" #tan{
     :getBean BeanDefinitionRegistryPostProcessor;
@@ -53,7 +45,7 @@ card "Parse BeanDefinition After" #tan{
     EventListenerMethodProcessor
     end note
 }
-endsplit
+
 
 card "getSingleton" {
     :通过 ObjectFactory 返回不完整对象

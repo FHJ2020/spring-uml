@@ -11,6 +11,8 @@ interface ConfigurableBeanFactory extends HierarchicalBeanFactory{
 interface ConfigurableListableBeanFactory extends ListableBeanFactory, AutowireCapableBeanFactory, ConfigurableBeanFactory
 
 class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements ConfigurableListableBeanFactory, BeanDefinitionRegistry{
+    - Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders
+    - Map<String, BeanDefinition> beanDefinitionMap
     - List<BeanPostProcessor> beanPostProcessors
     - Map<String, BeanDefinition> beanDefinitionMap
 
@@ -32,7 +34,14 @@ class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements Single
     + void registerDependentBean(String beanName, String dependentBeanName)
 }
 
-abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory
+abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory{
+    - Map<String, RootBeanDefinition> mergedBeanDefinitions
+}
+note bottom of AbstractBeanFactory
+mergedBeanDefinitions processor会修改
+end note
+
+
 abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanRegistry
 
 class GenericApplicationContext extends AbstractApplicationContext implements BeanDefinitionRegistry

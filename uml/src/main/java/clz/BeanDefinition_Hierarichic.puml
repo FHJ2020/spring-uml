@@ -34,6 +34,7 @@ class BeanDefinitionHolder implements BeanMetadataElement{
 
 interface AnnotatedBeanDefinition extends BeanDefinition
 class RootBeanDefinition {
+    - boolean postProcessed = false
     - Object beanClass
     - BeanDefinitionHolder decoratedDefinition
     - Set<Member> externallyManagedConfigMembers
@@ -44,6 +45,7 @@ note top of RootBeanDefinition
 @PostConstruct解析后会被添加到 externallyManagedInitMethods
 @PreDestroy解析后会被添加到 externallyManagedDestroyMethods
 @Resource解析后,会被添加到 externallyManagedConfigMembers
+MergedBeanDefinitionPostProcessor 处理后会变成true,只会merge一次
 end note
 RootBeanDefinition ---|> AbstractBeanDefinition
 
@@ -54,6 +56,7 @@ interface BeanDefinition{
 
 abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition{
     - MutablePropertyValues propertyValues
+    - MethodOverrides methodOverrides
 }
 AbstractBeanDefinition::MutablePropertyValues ---> MutablePropertyValues
 

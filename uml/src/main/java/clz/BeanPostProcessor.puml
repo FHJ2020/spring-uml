@@ -129,9 +129,12 @@ namespace contextHandler{
         }
         note bottom of AutowiredAnnotationBeanPostProcessor
         **postProcessMergedBeanDefinition**
-        对 @Autowired、@Value 注解的解析,添加到 rbd.externallyManagedConfigMembers 字段中
+        解析 @Autowired、@Value ,添加到 rbd.externallyManagedConfigMembers 字段中
         ,注入依赖
         设置到 RootBeanDefinition.externallyManagedConfigMembers字段
+        **determineCandidateConstructors**
+        解析@Lookup添加到 bd.overrides字段
+        将@Autowired注解的构造器返回,供创建对象使用
         end note
 
         class InitDestroyAnnotationBeanPostProcessor implements .DestructionAwareBeanPostProcessor, .MergedBeanDefinitionPostProcessor{
