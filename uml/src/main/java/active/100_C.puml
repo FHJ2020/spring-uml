@@ -19,6 +19,10 @@ card "Parse BeanDefinition" #tan{
     :handler.parse
     #get BeanDefinitionParser
     #BeanDefinitionParser.parse;
+    note
+    **xml方式**
+    bean中的所有属性被解析成PropertyValue,被添加到propertyValues字段中
+    end note
 
     :register PostProcessors BeanDefinition;
     :register BeanDefinition;
@@ -106,14 +110,16 @@ card "Instantiation After" #skyblue {
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
+    将injectionMetadataCache中的依赖,注入到bean实例中,这一步会调用getBean去获取属性中的bean
     end note
     :InstantiationAwareBeanPostProcessor.postProcessPropertyValues;
-
     note
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     end note
+    :applyPropertyValues
+    解析propertyValues中的依赖并注入到bean实例中;
 }
 
 

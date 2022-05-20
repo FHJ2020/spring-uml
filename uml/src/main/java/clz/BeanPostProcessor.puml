@@ -128,13 +128,15 @@ namespace contextHandler{
 
         }
         note bottom of AutowiredAnnotationBeanPostProcessor
-        **postProcessMergedBeanDefinition**
-        解析 @Autowired、@Value ,添加到 rbd.externallyManagedConfigMembers 字段中
-        ,注入依赖
-        设置到 RootBeanDefinition.externallyManagedConfigMembers字段
-        **determineCandidateConstructors**
+         **determineCandidateConstructors**
         解析@Lookup添加到 bd.overrides字段
         将@Autowired注解的构造器返回,供创建对象使用
+        **postProcessMergedBeanDefinition**
+        #解析 @Autowired、@Value ,添加到 rbd.externallyManagedConfigMembers 字段中
+        #放入缓存processor.injectionMetadataCache
+        **postProcessProperties**
+        将injectionMetadataCache中的依赖注入
+
         end note
 
         class InitDestroyAnnotationBeanPostProcessor implements .DestructionAwareBeanPostProcessor, .MergedBeanDefinitionPostProcessor{
@@ -147,10 +149,11 @@ namespace contextHandler{
             + boolean requiresDestruction(Object bean)
         }
         note top of InitDestroyAnnotationBeanPostProcessor
+        **postProcessMergedBeanDefinition**
         解析lifecycle注解
         子类CommonAnnotationBeanPostProcessor
         使用@PostConstruct、@PreDestroy作为默认lifecycle注解
-        **修改**
+        **不使用默认的注解修改**
         annotation-config=false
         #手动注入annotation-config相关processor,把CommonAnnotationBeanPostProcessor替换
         #用BeanDefinitionRegistryPostProcessor,将CommonAnnotationBeanPostProcessor删除
@@ -172,7 +175,11 @@ namespace contextHandler{
         @PostConstruct、@PreDestroy、
         @Resource、@Resource上的@Lazy
         **postProcessMergedBeanDefinition**
-        将上面相关注解解析后添加到rbd的externallyManagedXXX字段中
+        #将上面相关注解解析后添加到rbd的externallyManagedXXX字段中
+        #将@Resource解析后缓存到processor.injectionMetadataCache字段中
+        **postProcessProperties**
+        将injectionMetadataCache中的依赖注入
+        以pvs为主,即如果是方法注入并且在pvs中能找到,则跳过。否则直接注入
         end note
     }
 
