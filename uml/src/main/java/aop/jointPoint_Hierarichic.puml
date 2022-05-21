@@ -1,0 +1,36 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+interface Joinpoint
+interface Pointcut
+interface ExpressionPointcut extends Pointcut
+class ComposablePointcut implements Pointcut
+
+interface Invocation extends Joinpoint
+interface ConstructorInvocation extends Invocation
+interface MethodInvocation extends Invocation
+interface ProxyMethodInvocation extends MethodInvocation
+
+
+interface Advice
+interface AfterAdvice extends Advice
+interface AfterReturningAdvice extends AfterAdvice
+interface ThrowsAdvice extends AfterAdvice
+interface BeforeAdvice extends Advice
+interface MethodBeforeAdvice extends BeforeAdvice
+
+
+interface Interceptor extends Advice
+interface ConstructorInterceptor extends Interceptor
+interface MethodInterceptor extends Interceptor
+interface DynamicIntroductionAdvice extends Advice
+
+interface IntroductionInfo
+
+interface Advisor
+interface PointcutAdvisor extends Advisor
+interface InstantiationModelAwarePointcutAdvisor extends PointcutAdvisor
+
+
+interface IntroductionAdvisor extends Advisor, IntroductionInfo
+@enduml

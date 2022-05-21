@@ -1,0 +1,31 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+floating note
+**joinPoint**
+织入点,额外的逻辑被添加的位置,每一条代码前后都是
+**Pointcut**
+joinPoint的匹配方式,哪些joinPoint被添加到程序中而不是所有的joinPoint
+**Advice**
+逻辑载体,相当于一个method
+
+
+end note
+
+:joinPoint1;
+card helloMethodInner #tan {
+    :joinPoint2;
+    :methodBody;
+    :joinPoint3;
+    :return;
+    :joinPoint4;
+}
+:joinPoint5;
+
+end
+
+
+
+
+@enduml

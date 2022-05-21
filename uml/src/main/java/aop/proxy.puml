@@ -1,6 +1,49 @@
 @startuml
 'https://plantuml.com/class-diagram
 
+
+'joinpoint
+interface Joinpoint
+interface Pointcut
+interface ExpressionPointcut extends Pointcut
+class ComposablePointcut implements Pointcut
+
+interface Invocation extends Joinpoint
+interface ConstructorInvocation extends Invocation
+interface MethodInvocation extends Invocation
+interface ProxyMethodInvocation extends MethodInvocation
+
+'Advice
+interface Advice
+interface AfterAdvice extends Advice
+interface AfterReturningAdvice extends AfterAdvice
+interface ThrowsAdvice extends AfterAdvice
+interface BeforeAdvice extends Advice
+interface MethodBeforeAdvice extends BeforeAdvice
+
+'Interceptor
+interface Interceptor extends Advice
+interface ConstructorInterceptor extends Interceptor
+interface MethodInterceptor extends Interceptor
+interface DynamicIntroductionAdvice extends Advice
+
+interface IntroductionInfo
+interface Advisor
+interface PointcutAdvisor extends Advisor
+interface InstantiationModelAwarePointcutAdvisor extends PointcutAdvisor
+interface IntroductionAdvisor extends Advisor, IntroductionInfo
+
+'===========
+
+'static
+card static {
+    class AopContext{
+        - ThreadLocal<Object> currentProxy
+    }
+}
+
+
+
 class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource
 abstract class AbstractPrototypeBasedTargetSource extends AbstractBeanFactoryBasedTargetSource
 class PrototypeTargetSource extends AbstractPrototypeBasedTargetSource
@@ -32,7 +75,16 @@ class ProxyCreatorSupport extends AdvisedSupport{
     - AopProxyFactory aopProxyFactory
 }
 class ProxyFactory extends ProxyCreatorSupport
-class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean
+note bottom of ProxyFactory
+不依赖Ioc容器方式,创建proxy对象
+end note
+
+class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean{
+
+}
+note bottom of ProxyFactoryBean
+Ioc容器创建proxy对象
+end note
 class AspectJProxyFactory extends ProxyCreatorSupport
 interface FactoryBean
 note top
