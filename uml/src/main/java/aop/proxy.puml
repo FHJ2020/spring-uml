@@ -150,7 +150,7 @@ class SimpleBeanFactoryAwareAspectInstanceFactory implements AspectInstanceFacto
 
 
 
-card Object #tan {
+package aop生成的beanDefinition对象图 #tan {
 
 'method
     card methodDefinition {
@@ -175,6 +175,7 @@ card Object #tan {
         }
             map aspectFactoryDef {
             class => RootBeanDefinition
+            beanClass => SimpleBeanFactoryAwareAspectInstanceFactory.class
             getPropertyValues *--> aspectFactoryPropertyValues
         }
     }
@@ -242,7 +243,7 @@ card Object #tan {
 
 
 
-    package advisor {
+    package "aop:aspect=>advisor" {
         'advisor
         map "advisorDefinition.PropertyValues" as advisorPropertyValues {
             aspectName => aspectName(ref)
@@ -261,12 +262,50 @@ card Object #tan {
             getPropertyValues *--> advisorPropertyValues
         }
         note top of advisorDefinition
-        解析
+        解析 aop:aspect 及其子元素,转成bd并注册
+        aspect元素下,一个advice注册一个advisor BeanDefinition
+        #aop:before
+        #aop:after
+        #aop:after-returning
+        #aop:around
+        #aop:after-throwing
+        BeanDefinition注册时的名字都是自动生成的
+        ===
+        在aop:config下的直接advisor beanClass不同
         end note
     }
 
+'aop:config=>advisor
+    package aop:config=>advisor {
+        map "advisorDefinition2.PropertyValues" as advisor2PropertyValues {
+            adviceBeanName => new RuntimeBeanNameReference(advice-ref)
+            order => order(order)
+        }
+        map advisorDefinition2 {
+            class => RootBeanDefinition
+            beanClass => DefaultBeanFactoryPointcutAdvisor.class
+            getPropertyValues *--> advisor2PropertyValues
+        }
+    }
+
+'aop:declare-parents
+    package aop:declare-parents {
+        map "declareDefinition.ConstructorArgumentValues" as declareConstructorArgumentValues {
+            Map<Integer, ValueHolder> indexedArgumentValues => 下面是map内容
+            0 => new ValueHolder(implement-interface)
+            1 => new ValueHolder(types-matching)
+            2_default => new ValueHolder(default-impl)
+            2_ref => new RuntimeBeanReference(delegate-ref)
+        }
+        map declareDefinition {
+            class => RootBeanDefinition
+            beanClass => DeclareParentsAdvisor.class
+            getConstructorArgumentValues *--> declareConstructorArgumentValues
+        }
+    }
 
 }
+
 
 
 
