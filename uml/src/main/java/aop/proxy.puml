@@ -152,79 +152,94 @@ class SimpleBeanFactoryAwareAspectInstanceFactory implements AspectInstanceFacto
 
 card Object #tan {
 
-    map "methodDefinition.PropertyValues" as mdp {
-        targetBeanName => aspectName(ref)
-        methodName => method(method)
-        synthetic => true
-    }
-    map methodDefinition {
-        class => RootBeanDefinition
-        beanClass => MethodLocatingFactoryBean.class
-        getPropertyValues *--> mdp
-    }
-
-
-    map "aspectFactoryDef.PropertyValues" as afd {
-        aspectBeanName => aspectName(ref)
-        synthetic => true
-    }
-    map aspectFactoryDef {
-        class => RootBeanDefinition
-        getPropertyValues *--> afd
+'method
+    card methodDefinition {
+        map "methodDefinition.PropertyValues" as methodPropertyValues {
+            targetBeanName => aspectName(ref)
+            methodName => method(method)
+            synthetic => true
+        }
+        map methodDefinition {
+            class => RootBeanDefinition
+            beanClass => MethodLocatingFactoryBean.class
+            getPropertyValues *--> methodPropertyValues
+        }
     }
 
 
-    map AdviceClass {
-        before => AspectJMethodBeforeAdvice.class
-        after => AspectJAfterAdvice.class
-        after-returning => AspectJAfterReturningAdvice.class
-        after-throwing => AspectJAfterThrowingAdvice.class
-        around => AspectJAroundAdvice.class
+'aspectFactory
+    card aspectFactoryDef {
+        map "aspectFactoryDef.PropertyValues" as aspectFactoryPropertyValues {
+            aspectBeanName => aspectName(ref)
+            synthetic => true
+        }
+            map aspectFactoryDef {
+            class => RootBeanDefinition
+            getPropertyValues *--> aspectFactoryPropertyValues
+        }
     }
 
-    'pointcut
-    map "pointcutDefinition.PropertyValues" as pdp {
-        expression => expression
-    }
-    map pointcutDefinition {
-        class => RootBeanDefinition
-        beanClass => AspectJExpressionPointcut.class
-        scope => BeanDefinition.SCOPE_PROTOTYPE
-        synthetic => true
-        getPropertyValues *---> pdp
-    }
-
-    'pointcut-ref
-    map RuntimeBeanReference {
-        beanName => beanName(pointcut-ref)
-        beanType => null
-        toParent => false
+'pointcut
+    card pointcutDefinition {
+        map "pointcutDefinition.PropertyValues" as pointcutPropertyValues {
+            expression => expression
+        }
+        map pointcutDefinition {
+            class => RootBeanDefinition
+            beanClass => AspectJExpressionPointcut.class
+            scope => BeanDefinition.SCOPE_PROTOTYPE
+            synthetic => true
+            getPropertyValues *--> pointcutPropertyValues
+        }
     }
 
 
+'pointcut-ref
+    card RuntimeBeanReference {
+        map RuntimeBeanReference {
+            beanName => beanName(pointcut-ref)
+            beanType => null
+            toParent => false
+        }
+    }
 
-    'advice
-    map "adviceDefinition.PropertyValues" as adf {
-        aspectName => aspectName(ref)
-        declarationOrder => xml 中定义的顺序
-        returningName => returning
-        throwingName => throwing
-        argumentNames => arg-names
+'advice
+    card adviceDefinition {
+        map AdviceClass {
+            before => AspectJMethodBeforeAdvice.class
+            after => AspectJAfterAdvice.class
+            after-returning => AspectJAfterReturningAdvice.class
+            after-throwing => AspectJAfterThrowingAdvice.class
+            around => AspectJAroundAdvice.class
+        }
+        map "adviceDefinition.PropertyValues" as advicePropertyValues {
+            aspectName => aspectName(ref)
+            declarationOrder => xml 中定义的顺序
+            returningName => returning
+            throwingName => throwing
+            argumentNames => arg-names
+        }
+        map "adviceDefinition.ConstructorArgumentValues" as adviceConstructorArgumentValues {
+            Map<Integer, ValueHolder> indexedArgumentValues => 下面是map的key指向的值
+            0 =>
+            1_pointcut =>
+            1_pointcut_ref =>
+            2 =>
+        }
+        adviceConstructorArgumentValues::0 --> methodDefinition
+        adviceConstructorArgumentValues::2 --> aspectFactoryDef
+        adviceConstructorArgumentValues::1_pointcut --> pointcutDefinition
+        adviceConstructorArgumentValues::1_pointcut_ref --> RuntimeBeanReference
+
+        map adviceDefinition {
+            class => RootBeanDefinition
+            synthetic => false
+            getPropertyValues *--> advicePropertyValues
+            beanClass *----> AdviceClass
+            getConstructorArgumentValues *----> adviceConstructorArgumentValues
+        }
     }
-    map "adviceDefinition.ConstructorArgumentValues" as adcav {
-        Map<Integer, ValueHolder> indexedArgumentValues => 下面是map的key指向的值
-        0 *--> methodDefinition
-        1(pointcut) *--> pointcutDefinition
-        1(pointcut-ref) *--> RuntimeBeanReference
-        2 *--> aspectFactoryDef
-    }
-    map adviceDefinition {
-        class => RootBeanDefinition
-        synthetic => false
-        getPropertyValues *--> adf
-        beanClass *----> AdviceClass
-        getConstructorArgumentValues *----> adcav
-    }
+
 
 
     package advisor {
@@ -235,12 +250,14 @@ card Object #tan {
         }
         map "advisorDefinition.ConstructorArgumentValues" as advisorConstructorArgumentValues {
             List<ValueHolder> genericArgumentValues => 下面是list的内容
-            ' 0 *--> .adviceDefinition
+            0 =>
         }
+        advisorConstructorArgumentValues::0 --> adviceDefinition
+
         map advisorDefinition {
             class => RootBeanDefinition
             beanClass => AspectJPointcutAdvisor.class
-            getConstructorArgumentValues *----> advisorConstructorArgumentValues
+            getConstructorArgumentValues *--> advisorConstructorArgumentValues
             getPropertyValues *--> advisorPropertyValues
         }
         note top of advisorDefinition
