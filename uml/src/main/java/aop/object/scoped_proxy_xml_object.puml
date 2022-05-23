@@ -1,0 +1,56 @@
+@startuml
+'https://plantuml.com/object-diagram
+
+
+note top of scoped_proxy
+AnnotationConfigUtils.applyScopedProxyMode
+
+**包装原始的beanDefinition**
+ScopedProxyBeanDefinitionDecorator.decorate
+<aop:scoped-proxy /> 在bean元素中时会包装beanDefinition
+会注册2个beanDefinition
+#代理bean,#注册的名字为 beanName
+#原始bean,注册的名字为 scopedTarget.beanName
+end note
+
+card scoped_proxy #tan {
+
+    object targetBeanName {
+        scopedTarget.originalBeanName
+    }
+    map targetDefinitionAttributes {
+        Conventions.getQualifiedAttributeName(AutoProxyUtils.class, "preserveTargetClass") => trueOrFalse(proxy-target-class)
+    }
+    map targetDefinition #DarkGrey {
+       原始的bean =>
+       attributes *-> targetDefinitionAttributes
+       autowireCandidate => false
+       primary => false
+    }
+
+    map targetDefinitionHolder {
+        beanDefinition *-> targetDefinition
+        beanName *--> targetBeanName
+    }
+
+    map BeanDefinitionResource {
+        beanDefinition *--> targetDefinition
+    }
+
+    map proxyDefinitionPropertyValues {
+        targetBeanName *----> targetBeanName
+        proxyTargetClass => trueOrFalse(proxy-target-class)
+    }
+    map proxyDefinition #skyblue {
+        beanClass => **ScopedProxyFactoryBean.class**
+        decoratedDefinition *--> targetDefinitionHolder
+        resource *-> BeanDefinitionResource
+        getPropertyValues *--> proxyDefinitionPropertyValues
+        autowireCandidate => targetDefinition.autowireCandidate(autowire-candidate)
+        primary => targetDefinition.primary(primary)
+        qualifiers => targetDefinition.qualifiers
+    }
+}
+
+
+@enduml

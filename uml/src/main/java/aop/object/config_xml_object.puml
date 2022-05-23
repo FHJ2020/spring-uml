@@ -2,8 +2,11 @@
 'https://plantuml.com/activity-diagram-beta
 
 
+note top of aop_beanDefinition_object_map
+解析 <aop:config /> 标签生成的 beanDefinition 对象图
+end note
 
-package aop生成的beanDefinition对象图 #tan {
+package aop_beanDefinition_object_map #tan {
 
 'method
     card methodDefinition {
@@ -158,4 +161,5 @@ package aop生成的beanDefinition对象图 #tan {
     }
 
 }
+
 @enduml
