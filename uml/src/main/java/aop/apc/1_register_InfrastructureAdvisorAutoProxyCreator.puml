@@ -3,12 +3,18 @@
 
 start
 
-#tan: register
-    InfrastructureAdvisorAutoProxyCreator 注册流程
-    BeanPostProcessors
-;
 
-card InfrastructureAdvisorAutoProxyCreator #skyblue {
+note
+#<context:component-scan annotation-config="true" />
+#<cache:annotation-driven  />
+#<tx:annotation-driven  />
+#<context:annotation-config>
+#<mvc:annotation-driven  />
+以上配置属性会注册 InfrastructureAdvisorAutoProxyCreator
+
+end note
+
+card #skyblue InfrastructureAdvisorAutoProxyCreator {
 
 
     fork
@@ -85,7 +91,6 @@ card InfrastructureAdvisorAutoProxyCreator #skyblue {
     :AopConfigUtils.registerAutoProxyCreatorIfNecessary;
 
 }
-
 
 end
 

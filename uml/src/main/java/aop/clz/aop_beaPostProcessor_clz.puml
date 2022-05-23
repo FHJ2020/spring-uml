@@ -14,18 +14,20 @@ abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator
 
 package beanPostProcessor {
 
-    note top of beanPostProcessor
-    AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作为优先级,越大优先级越高
-        APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
-        APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
-        APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
-    处理aop name
-    end note
+
 
     class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
     class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
     class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator
 }
-
+note top of beanPostProcessor
+AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作为优先级,越大优先级越高
+    APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
+注册时会判断是否已经存在该类型的beanPostProcessor,
+如果存在继续判断优先级,如果比原来的高,则修改beanDefinition的beanClass
+为当前的beanPostProcessor
+end note
 
 @enduml

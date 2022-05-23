@@ -57,6 +57,8 @@ interface PointcutAdvisor extends Advisor
 interface InstantiationModelAwarePointcutAdvisor extends PointcutAdvisor
 interface IntroductionAdvisor extends Advisor, IntroductionInfo
 class AspectJPointcutAdvisor implements PointcutAdvisor, Ordered
+class DeclareParentsAdvisor implements IntroductionAdvisor
+class DefaultIntroductionAdvisor implements IntroductionAdvisor
 
 
 class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
