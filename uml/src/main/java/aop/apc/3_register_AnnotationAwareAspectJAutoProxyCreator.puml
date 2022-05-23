@@ -1,0 +1,32 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+
+
+
+#tan: register
+    AnnotationAwareAspectJAutoProxyCreator 注册流程
+    BeanPostProcessors
+;
+
+card AnnotationAwareAspectJAutoProxyCreatorz #skyblue {
+    :AopNamespaceHandler
+        init;
+    note
+    <aop:aspectj-autoproxy />
+    end note
+
+    :AspectJAutoProxyBeanDefinitionParser
+        parse;
+
+    :AopNamespaceUtils
+        registerAspectJAnnotationAutoProxyCreatorIfNecessary;
+
+}
+
+
+end
+
+@enduml

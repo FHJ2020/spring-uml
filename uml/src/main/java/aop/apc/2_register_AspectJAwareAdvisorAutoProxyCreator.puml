@@ -1,0 +1,33 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+
+
+#tan: register
+    AspectJAwareAdvisorAutoProxyCreator 注册流程
+    BeanPostProcessors
+;
+
+card AspectJAwareAdvisorAutoProxyCreator #skyblue {
+    :AopNamespaceHandler
+        init;
+    note
+    <aop:config />
+    end note
+
+    :ConfigBeanDefinitionParser
+        parse
+        configureAutoProxyCreator;
+
+    :AopNamespaceUtils
+        registerAspectJAutoProxyCreatorIfNecessary;
+
+
+}
+
+
+end
+
+@enduml

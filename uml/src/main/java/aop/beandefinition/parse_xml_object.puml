@@ -124,7 +124,7 @@ package aop生成的beanDefinition对象图 #tan {
         #aop:after-throwing
         BeanDefinition注册时的名字都是自动生成的
         ===
-        在aop:config下的直接advisor beanClass不同
+        在aop:config下的直接advisor 与aspect的beanClass不同
         end note
     }
 

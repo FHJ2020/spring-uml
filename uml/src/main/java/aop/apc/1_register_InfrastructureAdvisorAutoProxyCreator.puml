@@ -4,7 +4,8 @@
 start
 
 #tan: register
-    InfrastructureAdvisorAutoProxyCreator注册流程
+    InfrastructureAdvisorAutoProxyCreator 注册流程
+    BeanPostProcessors
 ;
 
 card InfrastructureAdvisorAutoProxyCreator #skyblue {
@@ -16,9 +17,15 @@ card InfrastructureAdvisorAutoProxyCreator #skyblue {
             fork
             :ComponentScanBeanDefinitionParser
                             registerComponents;
+           note
+            <context:component-scan annotation-config="true" />
+            end note
             fork again
             :AnnotationConfigBeanDefinitionParser
             parse;
+            note
+            <context:annotation-config>
+            end note
             end fork
         fork again
         :spring boot 相关需要继续往上看
@@ -45,11 +52,26 @@ card InfrastructureAdvisorAutoProxyCreator #skyblue {
     fork again
         fork
             :CacheNamespaceHandler;
+            note
+            <cache:annotation-driven  />
+            end note
             :AnnotationDrivenCacheBeanDefinitionParser
                 registerCacheAdvisor
             ;
             fork again
             :TxNamespaceHandler;
+            note
+            <tx:annotation-driven  />
+            end note
+            :AnnotationDrivenBeanDefinitionParser
+                configureAutoProxyCreator
+            ;
+            fork again
+            :MvcNamespaceHandler
+                init;
+            note
+            <mvc:annotation-driven  />
+            end note
             :AnnotationDrivenBeanDefinitionParser
                 configureAutoProxyCreator
             ;
