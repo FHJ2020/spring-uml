@@ -15,7 +15,9 @@ interface ProxyMethodInvocation extends MethodInvocation
 
 'Advice
 interface Advice
-interface AfterAdvice extends Advice
+interface AfterAdvice
+AfterAdvice -u---|> Advice
+
 interface AfterReturningAdvice extends AfterAdvice
 interface ThrowsAdvice extends AfterAdvice
 interface BeforeAdvice extends Advice
@@ -87,10 +89,7 @@ interface TargetClassAware {
 	+ Class<?> getTargetClass();
 }
 interface AopInfrastructureBean
-note top
-标记接口,所有标记这个接口的类,Spring
-不会使用自动代理,即使pointcut匹配
-end note
+
 
 class DefaultAopProxyFactory implements AopProxyFactory
 class ScopedObject
@@ -150,163 +149,6 @@ class SimpleBeanFactoryAwareAspectInstanceFactory implements AspectInstanceFacto
 
 
 
-
-
-package aop生成的beanDefinition对象图 #tan {
-
-'method
-    card methodDefinition {
-        map "methodDefinition.PropertyValues" as methodPropertyValues {
-            targetBeanName => aspectName(ref)
-            methodName => method(method)
-            synthetic => true
-        }
-        map methodDefinition {
-            class => RootBeanDefinition
-            beanClass => MethodLocatingFactoryBean.class
-            getPropertyValues *--> methodPropertyValues
-        }
-    }
-
-
-'aspectFactory
-    card aspectFactoryDef {
-        map "aspectFactoryDef.PropertyValues" as aspectFactoryPropertyValues {
-            aspectBeanName => aspectName(ref)
-            synthetic => true
-        }
-            map aspectFactoryDef {
-            class => RootBeanDefinition
-            beanClass => SimpleBeanFactoryAwareAspectInstanceFactory.class
-            getPropertyValues *--> aspectFactoryPropertyValues
-        }
-    }
-
-'pointcut
-    card pointcutDefinition {
-        map "pointcutDefinition.PropertyValues" as pointcutPropertyValues {
-            expression => expression
-        }
-        map pointcutDefinition {
-            class => RootBeanDefinition
-            beanClass => AspectJExpressionPointcut.class
-            scope => BeanDefinition.SCOPE_PROTOTYPE
-            synthetic => true
-            getPropertyValues *--> pointcutPropertyValues
-        }
-    }
-
-
-'pointcut-ref
-    card RuntimeBeanReference {
-        map RuntimeBeanReference {
-            beanName => beanName(pointcut-ref)
-            beanType => null
-            toParent => false
-        }
-    }
-
-'advice
-    card adviceDefinition {
-        map AdviceClass {
-            before => AspectJMethodBeforeAdvice.class
-            after => AspectJAfterAdvice.class
-            after-returning => AspectJAfterReturningAdvice.class
-            after-throwing => AspectJAfterThrowingAdvice.class
-            around => AspectJAroundAdvice.class
-        }
-        map "adviceDefinition.PropertyValues" as advicePropertyValues {
-            aspectName => aspectName(ref)
-            declarationOrder => xml 中定义的顺序
-            returningName => returning
-            throwingName => throwing
-            argumentNames => arg-names
-        }
-        map "adviceDefinition.ConstructorArgumentValues" as adviceConstructorArgumentValues {
-            Map<Integer, ValueHolder> indexedArgumentValues => 下面是map的key指向的值
-            0 =>
-            1_pointcut =>
-            1_pointcut_ref =>
-            2 =>
-        }
-        adviceConstructorArgumentValues::0 --> methodDefinition
-        adviceConstructorArgumentValues::2 --> aspectFactoryDef
-        adviceConstructorArgumentValues::1_pointcut --> pointcutDefinition
-        adviceConstructorArgumentValues::1_pointcut_ref --> RuntimeBeanReference
-
-        map adviceDefinition {
-            class => RootBeanDefinition
-            synthetic => false
-            getPropertyValues *--> advicePropertyValues
-            beanClass *----> AdviceClass
-            getConstructorArgumentValues *----> adviceConstructorArgumentValues
-        }
-    }
-
-
-
-    package "aop:aspect=>advisor" {
-        'advisor
-        map "advisorDefinition.PropertyValues" as advisorPropertyValues {
-            aspectName => aspectName(ref)
-            order => order(order)
-        }
-        map "advisorDefinition.ConstructorArgumentValues" as advisorConstructorArgumentValues {
-            List<ValueHolder> genericArgumentValues => 下面是list的内容
-            0 =>
-        }
-        advisorConstructorArgumentValues::0 --> adviceDefinition
-
-        map advisorDefinition {
-            class => RootBeanDefinition
-            beanClass => AspectJPointcutAdvisor.class
-            getConstructorArgumentValues *--> advisorConstructorArgumentValues
-            getPropertyValues *--> advisorPropertyValues
-        }
-        note top of advisorDefinition
-        解析 aop:aspect 及其子元素,转成bd并注册
-        aspect元素下,一个advice注册一个advisor BeanDefinition
-        #aop:before
-        #aop:after
-        #aop:after-returning
-        #aop:around
-        #aop:after-throwing
-        BeanDefinition注册时的名字都是自动生成的
-        ===
-        在aop:config下的直接advisor beanClass不同
-        end note
-    }
-
-'aop:config=>advisor
-    package aop:config=>advisor {
-        map "advisorDefinition2.PropertyValues" as advisor2PropertyValues {
-            adviceBeanName => new RuntimeBeanNameReference(advice-ref)
-            order => order(order)
-        }
-        map advisorDefinition2 {
-            class => RootBeanDefinition
-            beanClass => DefaultBeanFactoryPointcutAdvisor.class
-            getPropertyValues *--> advisor2PropertyValues
-        }
-    }
-
-'aop:declare-parents
-    package aop:declare-parents {
-        map "declareDefinition.ConstructorArgumentValues" as declareConstructorArgumentValues {
-            Map<Integer, ValueHolder> indexedArgumentValues => 下面是map内容
-            0 => new ValueHolder(implement-interface)
-            1 => new ValueHolder(types-matching)
-            2_default => new ValueHolder(default-impl)
-            2_ref => new RuntimeBeanReference(delegate-ref)
-        }
-        map declareDefinition {
-            class => RootBeanDefinition
-            beanClass => DeclareParentsAdvisor.class
-            getConstructorArgumentValues *--> declareConstructorArgumentValues
-        }
-    }
-
-}
 
 
 

@@ -1,0 +1,31 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+
+interface AopInfrastructureBean
+note top
+标记接口,所有标记这个接口的类,Spring
+不会使用自动代理,即使pointcut匹配
+end note
+
+class ProxyProcessorSupport extends ProxyConfig implements Ordered, AopInfrastructureBean
+abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor
+abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator
+
+package beanPostProcessor {
+
+    note top of beanPostProcessor
+    AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作为优先级,越大优先级越高
+        APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
+        APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
+        APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
+    处理aop name
+    end note
+
+    class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator
+}
+
+
+@enduml

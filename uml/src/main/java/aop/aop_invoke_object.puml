@@ -1,0 +1,14 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+:META-INF/spring.handlers
+NamespaceHandlerResolver.resolve(aop);
+
+:AopNamespaceHandler;
+
+
+stop
+
+@enduml

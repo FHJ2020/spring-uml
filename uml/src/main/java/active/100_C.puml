@@ -14,17 +14,27 @@ card "Parse BeanDefinition" #tan{
     end note
     :handler.init
     #registerBeanDefinitionParser
+        parser会注册postProcessors
     #registerBeanDefinitionDecorator
     ;
     :handler.parse
     #get BeanDefinitionParser
-    #BeanDefinitionParser.parse;
+    #BeanDefinitionParser.parse
+    #generate BeanDefinition;
     note
     **xml方式**
     bean中的所有属性被解析成PropertyValue,被添加到propertyValues字段中
     end note
 
     :register PostProcessors BeanDefinition;
+    note
+    **default NamespaceHandler register PostProcessors**
+
+    **aop NamespaceHandler register PostProcessors**
+    AspectJAwareAdvisorAutoProxyCreator
+
+    end note
+
     :register BeanDefinition;
 }
 

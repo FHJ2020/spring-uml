@@ -62,7 +62,7 @@ note bottom of BeanFactoryPostProcessor
 
 end note
 
-namespace abstractApplicationContext.default{
+namespace abstractApplicationContext_default_BeanPostProcessor{
     class ApplicationContextAwareProcessor{
         + Object postProcessBeforeInitialization(Object bean, String beanName)
     }
@@ -88,8 +88,7 @@ namespace abstractApplicationContext.default{
 }
 
 
-namespace contextHandler{
-    namespace BeanFactoryPostProcessor {
+    namespace contextHandler_BeanFactoryPostProcessor {
         interface SmartInitializingSingleton{
             void afterSingletonsInstantiated()
         }
@@ -119,7 +118,7 @@ namespace contextHandler{
         EventListenerMethodProcessor ..|> SmartInitializingSingleton
 
     }
-    namespace BeanPostProcessor{
+    namespace contextHandler_BeanPostProcessor{
         class AutowiredAnnotationBeanPostProcessor implements .SmartInstantiationAwareBeanPostProcessor,.MergedBeanDefinitionPostProcessor{
             + void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName)
             + void resetBeanDefinition(String beanName)
@@ -183,7 +182,6 @@ namespace contextHandler{
         end note
     }
 
-}
 
 
 'Property

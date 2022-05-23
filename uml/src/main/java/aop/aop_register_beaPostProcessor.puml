@@ -1,0 +1,70 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+#tan: register
+    InfrastructureAdvisorAutoProxyCreator注册流程
+;
+
+card InfrastructureAdvisorAutoProxyCreator #skyblue {
+
+
+    fork
+        fork
+        :ContextNamespaceHandler;
+            fork
+            :ComponentScanBeanDefinitionParser
+                            registerComponents;
+            fork again
+            :AnnotationConfigBeanDefinitionParser
+            parse;
+            end fork
+        fork again
+        :spring boot 相关需要继续往上看
+        :AnnotationConfigUtils
+            registerAnnotationConfigProcessors
+        ;
+        end fork;
+
+
+
+    #pink:ConfigurationClassPostProcessor
+        postProcessBeanDefinitionRegistry;
+    :ConfigurationClassBeanDefinitionReader
+        loadBeanDefinitionsFromRegistrars;
+    :AutoProxyRegistrar
+        registerBeanDefinitions;
+
+
+    fork again
+    :AopAutoConfiguration.
+        ClassProxyingConfiguration;
+    :ClassProxyingConfiguration
+        forceAutoProxyCreatorToUseClassProxying;
+    fork again
+        fork
+            :CacheNamespaceHandler;
+            :AnnotationDrivenCacheBeanDefinitionParser
+                registerCacheAdvisor
+            ;
+            fork again
+            :TxNamespaceHandler;
+            :AnnotationDrivenBeanDefinitionParser
+                configureAutoProxyCreator
+            ;
+        end fork
+
+    :AopNamespaceUtils
+        registerAutoProxyCreatorIfNecessary
+    ;
+
+    end fork
+    :AopConfigUtils.registerAutoProxyCreatorIfNecessary;
+
+}
+
+
+end
+
+@enduml
