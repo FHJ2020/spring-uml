@@ -10,7 +10,20 @@ end note
 
 class ProxyProcessorSupport extends ProxyConfig implements Ordered, AopInfrastructureBean
 abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor
-abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator
+abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator {
+    - Map<Object, Class<?>> proxyTypes
+    - Map<Object, Boolean> advisedBeans
+}
+note right of AbstractAdvisorAutoProxyCreator
+**advisedBeans**bean创建时会判断,然后缓存结果
+key:beanName
+value:是否需要进行代理
+===
+**advisedBeans**
+key:beanName
+value:代理类的class对象
+
+end note
 
 package beanPostProcessor {
 
