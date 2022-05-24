@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+note top of annotation-driven_mode=proxy
+解析<tx:annotation-driven mode="proxy" /> 标签生成的对象图
+advice: interceptorDef
+advisor: advisorDef
+pointcut: BeanFactoryTransactionAttributeSourceAdvisor使用
+TransactionAttributeSource作为pointcut
+
+end note
+
+card annotation-driven_mode=proxy #tan {
+
+    object sourceName{
+        sourceDef注册时容器自动生成的beanName
+    }
+    map sourceDef #pink {
+        beanClass => **AnnotationTransactionAttributeSource.class**
+        role => BeanDefinition.ROLE_INFRASTRUCTURE
+    }
+    sourceDef --> sourceName : beanName
+
+
+    object interceptorName{
+        interceptorDef注册时容器自动生成的beanName
+    }
+    map interceptorDef {
+        beanClass => **TransactionInterceptor.class**
+        role => BeanDefinition.ROLE_INFRASTRUCTURE
+        propertyValues => 以下都是propertyValues的值
+        transactionAttributeSource => new RuntimeBeanReference(sourceName)
+    }
+    interceptorDef::transactionAttributeSource *----> sourceName
+    interceptorDef *---> interceptorName : beanName
+
+
+
+    map advisorDef #skyblue {
+        beanClass => **BeanFactoryTransactionAttributeSourceAdvisor.class**
+        role => BeanDefinition.ROLE_INFRASTRUCTURE
+        propertyValues => 以下都是propertyValues的值
+        transactionAttributeSource => new RuntimeBeanReference(sourceName)
+        adviceBeanName *-> interceptorName
+        order => order (order)
+    }
+    advisorDef::transactionAttributeSource *----> sourceName
+
+}
+
+@enduml

@@ -1,0 +1,64 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+'TransactionAnnotationParser
+interface TransactionAnnotationParser {
+    + TransactionAttribute parseTransactionAnnotation(AnnotatedElement element)
+    boolean isCandidateClass(Class<?> targetClass)
+}
+annotation Transactional
+class SpringTransactionAnnotationParser implements TransactionAnnotationParser{
+    # TransactionAttribute findTransactionAttribute(Class<?> clazz)
+	# TransactionAttribute findTransactionAttribute(Method method)
+}
+SpringTransactionAnnotationParser --> Transactional : 解析
+class Ejb3TransactionAnnotationParser implements TransactionAnnotationParser
+class JtaTransactionAnnotationParser implements TransactionAnnotationParser
+
+'
+interface TransactionAttributeSource {
+
+}
+
+class AnnotationTransactionAttributeSource extends AbstractFallbackTransactionAttributeSource{
+    - Set<TransactionAnnotationParser> annotationParsers
+}
+AnnotationTransactionAttributeSource::annotationParsers --> TransactionAnnotationParser :默认SpringTransactionAnnotationParser
+abstract class AbstractFallbackTransactionAttributeSource implements TransactionAttributeSource, EmbeddedValueResolverAware
+abstract class TransactionAspectSupport implements BeanFactoryAware, InitializingBean
+
+class TransactionInterceptor extends TransactionAspectSupport implements MethodInterceptor
+note bottom of TransactionInterceptor
+事务逻辑封装类
+<tx:advice /> 解析时只会注册 TransactionInterceptor
+不会注册advisor需要和 <aop:advisor /> 注解一起使用
+
+end note
+
+abstract class AbstractPointcutAdvisor implements PointcutAdvisor, Ordered
+abstract class AbstractBeanFactoryPointcutAdvisor extends AbstractPointcutAdvisor
+
+abstract class StaticMethodMatcher implements MethodMatcher
+abstract class StaticMethodMatcherPointcut extends StaticMethodMatcher implements Pointcut
+abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPointcut
+
+class BeanFactoryTransactionAttributeSourceAdvisor extends AbstractBeanFactoryPointcutAdvisor {
+    + TransactionAttributeSource transactionAttributeSource
+    - TransactionAttributeSourcePointcut pointcut
+    + getAdvice()
+}
+note top of BeanFactoryTransactionAttributeSourceAdvisor
+解析 <tx:annotation-driven mode="proxy" /> 会默认注册以下3个类的beanDefinition
+# advisor: BeanFactoryTransactionAttributeSourceAdvisor
+# transactionAttributeSource:被pointcut的匿名类使用,来匹配哪些方法需要执行事务
+# advice : TransactionInterceptor,事务逻辑载体
+end note
+class BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePointcut extends TransactionAttributeSourcePointcut{
+    # TransactionAttributeSource getTransactionAttributeSource()
+}
+
+BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePointcut::getTransactionAttributeSource ----> BeanFactoryTransactionAttributeSourceAdvisor::transactionAttributeSource
+BeanFactoryTransactionAttributeSourceAdvisor::pointcut -->  BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePointcut : 内部类返回transactionAttributeSource
+BeanFactoryTransactionAttributeSourceAdvisor::getAdvice ---> TransactionInterceptor #line:blue;line.bold;text:blue : 返回一个advice
+BeanFactoryTransactionAttributeSourceAdvisor::transactionAttributeSource ----> AnnotationTransactionAttributeSource #line:red;line.bold;text:red :annotation_driven
+@enduml

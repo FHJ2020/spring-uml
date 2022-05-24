@@ -1,0 +1,16 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+card #skyblue postProcessBeanDefinitionRegistry {
+
+:postProcessBeanDefinitionRegistry;
+
+}
+
+card #tan postProcessBeanFactory {
+}
+
+stop
+
+@enduml
