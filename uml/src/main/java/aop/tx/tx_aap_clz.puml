@@ -20,14 +20,14 @@ interface TransactionAttributeSource {
 
 }
 
-class AnnotationTransactionAttributeSource extends AbstractFallbackTransactionAttributeSource{
+class AnnotationTransactionAttributeSource #tan extends AbstractFallbackTransactionAttributeSource{
     - Set<TransactionAnnotationParser> annotationParsers
 }
 AnnotationTransactionAttributeSource::annotationParsers --> TransactionAnnotationParser :默认SpringTransactionAnnotationParser
 abstract class AbstractFallbackTransactionAttributeSource implements TransactionAttributeSource, EmbeddedValueResolverAware
 abstract class TransactionAspectSupport implements BeanFactoryAware, InitializingBean
 
-class TransactionInterceptor extends TransactionAspectSupport implements MethodInterceptor
+class TransactionInterceptor #tan extends TransactionAspectSupport implements MethodInterceptor
 note bottom of TransactionInterceptor
 事务逻辑封装类
 <tx:advice /> 解析时只会注册 TransactionInterceptor
@@ -41,8 +41,15 @@ abstract class AbstractBeanFactoryPointcutAdvisor extends AbstractPointcutAdviso
 abstract class StaticMethodMatcher implements MethodMatcher
 abstract class StaticMethodMatcherPointcut extends StaticMethodMatcher implements Pointcut
 abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPointcut
+note bottom of TransactionAttributeSourcePointcut
+内部类TransactionAttributeSourceClassFilter,不进行代理的类
+TransactionalProxy.class.isAssignableFrom(clazz)
+TransactionManager.class.isAssignableFrom(clazz)
+PersistenceExceptionTranslator.class.isAssignableFrom(clazz))
 
-class BeanFactoryTransactionAttributeSourceAdvisor extends AbstractBeanFactoryPointcutAdvisor {
+end note
+
+class BeanFactoryTransactionAttributeSourceAdvisor #tan extends AbstractBeanFactoryPointcutAdvisor {
     + TransactionAttributeSource transactionAttributeSource
     - TransactionAttributeSourcePointcut pointcut
     + getAdvice()
@@ -60,5 +67,5 @@ class BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePoi
 BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePointcut::getTransactionAttributeSource ----> BeanFactoryTransactionAttributeSourceAdvisor::transactionAttributeSource
 BeanFactoryTransactionAttributeSourceAdvisor::pointcut -->  BeanFactoryTransactionAttributeSourceAdvisor_TransactionAttributeSourcePointcut : 内部类返回transactionAttributeSource
 BeanFactoryTransactionAttributeSourceAdvisor::getAdvice ---> TransactionInterceptor #line:blue;line.bold;text:blue : 返回一个advice
-BeanFactoryTransactionAttributeSourceAdvisor::transactionAttributeSource ----> AnnotationTransactionAttributeSource #line:red;line.bold;text:red :annotation_driven
+BeanFactoryTransactionAttributeSourceAdvisor::transactionAttributeSource ----> AnnotationTransactionAttributeSource #line:red;line.bold;text:red :匹配事务注解
 @enduml

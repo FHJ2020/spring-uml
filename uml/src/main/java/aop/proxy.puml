@@ -19,44 +19,45 @@ interface MethodInvocation extends Invocation
 interface ProxyMethodInvocation extends MethodInvocation
 
 'Advice
-interface Advice
-interface AfterAdvice
-AfterAdvice -u---|> Advice
+package advices {
 
-interface AfterReturningAdvice extends AfterAdvice
-interface ThrowsAdvice extends AfterAdvice
-interface BeforeAdvice extends Advice
-interface MethodBeforeAdvice extends BeforeAdvice
+    interface Advice
+    interface AfterAdvice
+    AfterAdvice -u---|> Advice
+
+    interface AfterReturningAdvice extends AfterAdvice
+    interface ThrowsAdvice extends AfterAdvice
+    interface BeforeAdvice extends Advice
+    interface MethodBeforeAdvice extends BeforeAdvice
 
 
-interface AspectJPrecedenceInformation{
-    + int getOrder()
+    interface AspectJPrecedenceInformation{
+        + int getOrder()
+    }
+    abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation
+
+
+    class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements MethodBeforeAdvice
+    class AspectJAfterAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+    class AspectJAfterReturningAdvice extends AbstractAspectJAdvice implements AfterReturningAdvice, AfterAdvice
+    class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+    class AspectJAroundAdvice extends AbstractAspectJAdvice implements MethodInterceptor
+
+
+
+    'Interceptor
+    interface Interceptor extends Advice
+    interface ConstructorInterceptor extends Interceptor
+    interface MethodInterceptor extends Interceptor
+    interface DynamicIntroductionAdvice extends Advice
+
+
+
+
 }
-abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation
-
-
-class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements MethodBeforeAdvice
-class AspectJAfterAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
-class AspectJAfterReturningAdvice extends AbstractAspectJAdvice implements AfterReturningAdvice, AfterAdvice
-class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
-class AspectJAroundAdvice extends AbstractAspectJAdvice implements MethodInterceptor
-
-
-
-'Interceptor
-interface Interceptor extends Advice
-interface ConstructorInterceptor extends Interceptor
-interface MethodInterceptor extends Interceptor
-interface DynamicIntroductionAdvice extends Advice
-
-
-
 
 
 interface IntroductionInfo
-
-
-
 
 'Advisor
 interface Advisor
@@ -87,17 +88,134 @@ DefaultAdvisorAdapterRegistry.wrap 将advice包装成advisor
 MethodInterceptor 包装成 DefaultPointcutAdvisor
 end note
 
-abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator
 
 class ProxyProcessorSupport extends ProxyConfig implements  BeanClassLoaderAware, AopInfrastructureBean {
      + int getOrder()
 }
-class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+
+
+' beanPostProcessor
+package beanPostProcessor{
+    abstract class AbstractAutoProxyCreator #tan extends .ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor{
+        - Map<Object, Class<?>> proxyTypes
+        - Map<Object, Boolean> advisedBeans
+        + Object postProcessAfterInitialization(@Nullable Object bean, String beanName)
+    }
+    note right of AbstractAutoProxyCreator
+    **advisedBeans**bean创建时会判断,然后缓存结果
+    key:beanName
+    value:是否需要进行代理
+    ===
+    **advisedBeans**
+    key:beanName
+    value:代理类的class对象
+    end note
+
+    abstract class AbstractAdvisorAutoProxyCreator  extends AbstractAutoProxyCreator  {
+
+    }
+
+
+    class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator
+
+
+}
+note top of beanPostProcessor
+AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作为优先级,越大优先级越高
+    APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
+注册时会判断是否已经存在该类型的beanPostProcessor,
+如果存在继续判断优先级,如果比原来的高,则修改beanDefinition的beanClass
+为当前的beanPostProcessor
+end note
+
+
+' factory
+package factory{
+    interface FactoryBean
+    note top
+    BeanFactory.FACTORY_BEAN_PREFIX="&"
+    所有注册到容器中的 factoryBean 的名字前缀
+    前缀+beanName获取factoryBean实例,
+    beanName获取factoryBean创建的实例
+    end note
+
+
+    class ProxyCreatorSupport extends AdvisedSupport{
+        - AopProxyFactory aopProxyFactory
+    }
+
+    ProxyCreatorSupport::aopProxyFactory ----> DefaultAopProxyFactory : 默认
+
+
+
+    class ProxyFactory extends ProxyCreatorSupport {
+        + Object getProxy()
+        + Object getProxy(@Nullable ClassLoader classLoader)
+    }
+    note bottom of ProxyFactory
+    不依赖Ioc容器方式,创建proxy对象
+    end note
+
+    class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean,AopInfrastructureBean{
+
+    }
+    note bottom of ScopedProxyFactoryBean
+    <aop:scoped-proxy />
+    end note
+
+    class MethodLocatingFactoryBean implements FactoryBean
+    note bottom of MethodLocatingFactoryBean
+    返回一个方法
+    end note
+
+    class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean{
+
+    }
+    note bottom of ProxyFactoryBean
+    Ioc容器创建proxy对象
+    end note
+    class AspectJProxyFactory extends ProxyCreatorSupport
+
+
+
+    interface AopProxyFactory {
+        + AopProxy createAopProxy(AdvisedSupport config)
+    }
+    class DefaultAopProxyFactory implements AopProxyFactory {
+    }
+    AopProxyFactory::createAopProxy ----> proxy.AopProxy : 委托创建代理对象
+
+}
+
+'proxy
+package proxy {
+
+
+    interface AopProxy{
+        + Object getProxy();
+        + Object getProxy(@Nullable ClassLoader classLoader);
+    }
+    note bottom of AopProxy
+    CglibAopProxy
+    调用AopProxyUtils.completeProxiedInterfaces 找出aop需要的接口
+    计算时是根据 AdvisedSupport 的子类,即实际的代理工厂来找的
+    SpringProxy、Advised
+    end note
+    class CglibAopProxy implements AopProxy
+    class ObjenesisCglibAopProxy extends CglibAopProxy
+    class JdkDynamicAopProxy implements AopProxy, InvocationHandler
+
+
+
+}
+
 '===========
 
-abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor{
-    Object postProcessAfterInitialization(@Nullable Object bean, String beanName)
-}
+
 AbstractAutoProxyCreator::postProcessAfterInitialization ---> ProxyFactory : 调用factory创建代理对象
 'static
 card static {
@@ -126,44 +244,17 @@ interface TargetClassAware {
 	+ Class<?> getTargetClass();
 }
 interface AopInfrastructureBean
+interface AopInfrastructureBean
+note top
+标记接口,所有标记这个接口的类,Spring
+不会使用自动代理,即使pointcut匹配
+end note
 
-
-class DefaultAopProxyFactory implements AopProxyFactory {
-    + AopProxy createAopProxy(AdvisedSupport config)
-}
-DefaultAopProxyFactory::createAopProxy --> AopProxy : 委托创建代理对象
 
 class ScopedObject
 interface Advised extends TargetClassAware
 class AdvisedSupport extends ProxyConfig implements Advised
-class ProxyCreatorSupport extends AdvisedSupport{
-    - AopProxyFactory aopProxyFactory
-}
 
-class ProxyFactory extends ProxyCreatorSupport{
-    + Object getProxy()
-    + Object getProxy(@Nullable ClassLoader classLoader)
-}
-note bottom of ProxyFactory
-不依赖Ioc容器方式,创建proxy对象
-end note
-
-ProxyCreatorSupport::aopProxyFactory ---> DefaultAopProxyFactory : 默认
-
-class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean{
-
-}
-note bottom of ProxyFactoryBean
-Ioc容器创建proxy对象
-end note
-class AspectJProxyFactory extends ProxyCreatorSupport
-interface FactoryBean
-note top
-BeanFactory.FACTORY_BEAN_PREFIX="&"
-所有注册到容器中的 factoryBean 的名字前缀
-前缀+beanName获取factoryBean实例,
-beanName获取factoryBean创建的实例
-end note
 
 interface TransactionalProxy extends SpringProxy
 interface SpringProxy
@@ -182,14 +273,9 @@ class ProxyConfig{
 	+ void copyFrom(ProxyConfig other)
 }
 skinparam GroupInheritance 4
-class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean,AopInfrastructureBean{
 
-}
 
-class MethodLocatingFactoryBean implements FactoryBean
-note bottom of MethodLocatingFactoryBean
-返回一个方法
-end note
+
 interface AspectInstanceFactory {
      + int getOrder()
 }
@@ -199,20 +285,7 @@ class SimpleBeanFactoryAwareAspectInstanceFactory implements AspectInstanceFacto
 
 
 
-interface AopProxy{
-    + Object getProxy();
-    + Object getProxy(@Nullable ClassLoader classLoader);
-}
-note bottom of AopProxy
-CglibAopProxy
 
-调用AopProxyUtils.completeProxiedInterfaces 找出aop需要的接口
-计算时是根据 AdvisedSupport 的子类,即实际的代理工厂来找的
-SpringProxy、Advised
-end note
-class CglibAopProxy implements AopProxy
-class ObjenesisCglibAopProxy extends CglibAopProxy
-class JdkDynamicAopProxy implements AopProxy, InvocationHandler
 
 
 @enduml
