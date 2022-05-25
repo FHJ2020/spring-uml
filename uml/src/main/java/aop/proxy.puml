@@ -105,6 +105,7 @@ package advicesAll {
 }
 
 
+
 interface IntroductionInfo
 
 'Advisor
@@ -264,6 +265,8 @@ package proxy {
     调用AopProxyUtils.completeProxiedInterfaces 找出aop需要的接口
     计算时是根据 AdvisedSupport 的子类,即实际的代理工厂来找的
     SpringProxy、Advised
+    ===
+    子类调用拦截器都是通过, ReflectiveMethodInvocation
     end note
     class CglibAopProxy implements AopProxy
     class ObjenesisCglibAopProxy extends CglibAopProxy

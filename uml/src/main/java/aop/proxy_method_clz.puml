@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+namespace cglib {
+    interface MethodInterceptor extends Callback {
+        Object intercept(Object var1, Method var2, Object[] var3, MethodProxy var4) throws Throwable;
+    }
+}
+namespace spring{
+
+    class DynamicAdvisedInterceptor implements cglib.MethodInterceptor
+
+
+    interface Joinpoint {
+        + Object proceed() throws Throwable;
+        + Object getThis();
+        + AccessibleObject getStaticPart();
+    }
+
+    interface Invocation extends Joinpoint{
+        + Object[] getArguments();
+    }
+
+    interface MethodInvocation extends Invocation{
+        + Method getMethod();
+    }
+    note bottom of MethodInvocation
+    proceed 自调用实现链模式,即调用下一个MethodInterceptor
+    end note
+
+    interface ProxyMethodInvocation extends MethodInvocation{
+        + Object getProxy();
+    }
+
+    class ReflectiveMethodInvocation implements ProxyMethodInvocation{
+
+    }
+
+    class CglibMethodInvocation extends ReflectiveMethodInvocation{
+        + Object proceed()
+    }
+
+    interface MethodInterceptor extends Interceptor{
+        Object invoke(@Nonnull MethodInvocation invocation)
+    }
+}
+
+cglib.MethodInterceptor --> spring.MethodInvocation :create and invoke proceed()
+
+@enduml
