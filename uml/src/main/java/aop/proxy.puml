@@ -1,6 +1,8 @@
 @startuml
 'https://plantuml.com/class-diagram
 
+'DarkGrey 标记接口
+
 interface Ordered {
 	int HIGHEST_PRECEDENCE = Integer.MIN_VALUE;
 	int LOWEST_PRECEDENCE = Integer.MAX_VALUE;
@@ -19,41 +21,87 @@ interface MethodInvocation extends Invocation
 interface ProxyMethodInvocation extends MethodInvocation
 
 'Advice
-package advices {
+package advicesAll {
 
-    interface Advice
-    interface AfterAdvice
-    AfterAdvice -u---|> Advice
+    package adviceInterfaces{
 
-    interface AfterReturningAdvice extends AfterAdvice
-    interface ThrowsAdvice extends AfterAdvice
-    interface BeforeAdvice extends Advice
-    interface MethodBeforeAdvice extends BeforeAdvice
+        interface Advice
+        interface AfterAdvice
+        AfterAdvice --|> Advice
+        interface DynamicIntroductionAdvice
+        DynamicIntroductionAdvice --|> Advice
 
-
-    interface AspectJPrecedenceInformation{
-        + int getOrder()
+        interface AfterReturningAdvice extends AfterAdvice{
+            void afterReturning(@Nullable Object returnValue, Method method, Object[] args, @Nullable Object target)
+        }
+        interface ThrowsAdvice extends AfterAdvice
+        interface BeforeAdvice extends Advice {
+        }
+        interface MethodBeforeAdvice  {
+            void before(Method method, Object[] args, @Nullable Object target)
+        }
+        MethodBeforeAdvice --|> BeforeAdvice
     }
-    abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation
 
 
-    class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements MethodBeforeAdvice
-    class AspectJAfterAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
-    class AspectJAfterReturningAdvice extends AbstractAspectJAdvice implements AfterReturningAdvice, AfterAdvice
-    class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
-    class AspectJAroundAdvice extends AbstractAspectJAdvice implements MethodInterceptor
 
 
 
     'Interceptor
-    interface Interceptor extends Advice
-    interface ConstructorInterceptor extends Interceptor
-    interface MethodInterceptor extends Interceptor
-    interface DynamicIntroductionAdvice extends Advice
+    package InterceptorInterfaces{
+        interface Interceptor extends Advice
+        interface ConstructorInterceptor extends Interceptor
+        interface MethodInterceptor extends Interceptor{
+            + Object invoke(MethodInvocation mi)
+        }
+    }
+
+    'wrap
+    package wrapAdviceToInterceptor{
+        class MethodBeforeAdviceInterceptor implements MethodInterceptor, BeforeAdvice {
+            - MethodBeforeAdvice advice
+        }
+
+        class AfterReturningAdviceInterceptor implements MethodInterceptor, AfterAdvice{
+            - AfterReturningAdvice advice
+        }
+        class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
+            - Object throwsAdvice
+        }
+    }
 
 
 
+    package aspectJ {
+        interface AspectJPrecedenceInformation{
+            + int getOrder()
+        }
 
+        abstract class AbstractAspectJAdvice
+        AbstractAspectJAdvice ..|> Advice
+        AbstractAspectJAdvice ..|> AspectJPrecedenceInformation
+
+        AbstractAspectJAdviceImpls -u-|> AbstractAspectJAdvice #line:MediumBlue
+        package AbstractAspectJAdviceImpls{
+            'class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements MethodBeforeAdvice
+            AspectJMethodBeforeAdvice ..|> MethodBeforeAdvice
+
+            'class AspectJAfterReturningAdvice extends AbstractAspectJAdvice implements AfterReturningAdvice, AfterAdvice
+            AspectJAfterReturningAdvice ..|> AfterReturningAdvice
+
+            package MethodInterceptors {
+                'class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+                class AspectJAfterThrowingAdvice
+                AspectJAfterThrowingAdvice ..|> AfterAdvice
+                'class AspectJAroundAdvice extends AbstractAspectJAdvice implements MethodInterceptor
+                class AspectJAroundAdvice
+                'class AspectJAfterAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+                class AspectJAfterAdvice
+                AspectJAfterAdvice ..|> AfterAdvice
+            }
+            MethodInterceptors ..|> MethodInterceptor #line:red
+        }
+    }
 }
 
 
@@ -135,6 +183,18 @@ end note
 
 ' factory
 package factory{
+    interface Advised #AntiqueWhite extends .TargetClassAware
+    note top of Advised
+    保存aop代理工厂的配置信息
+    从spring中获取的aop代理对象,都可以转成该接口
+    end note
+
+    class AdvisedSupport extends ProxyConfig implements Advised{
+        - Map<MethodCacheKey, List<Object>> methodCache
+        - List<Advisor> advisors
+    }
+
+
     interface FactoryBean
     note top
     BeanFactory.FACTORY_BEAN_PREFIX="&"
@@ -148,7 +208,7 @@ package factory{
         - AopProxyFactory aopProxyFactory
     }
 
-    ProxyCreatorSupport::aopProxyFactory ----> DefaultAopProxyFactory : 默认
+    ProxyCreatorSupport::aopProxyFactory -----> AopProxyFactory
 
 
 
@@ -243,8 +303,7 @@ abstract class AopUtils{
 interface TargetClassAware {
 	+ Class<?> getTargetClass();
 }
-interface AopInfrastructureBean
-interface AopInfrastructureBean
+interface AopInfrastructureBean #DarkGrey
 note top
 标记接口,所有标记这个接口的类,Spring
 不会使用自动代理,即使pointcut匹配
@@ -252,17 +311,15 @@ end note
 
 
 class ScopedObject
-interface Advised extends TargetClassAware
-class AdvisedSupport extends ProxyConfig implements Advised
 
 
-interface TransactionalProxy extends SpringProxy
-interface SpringProxy
+
+interface TransactionalProxy #DarkGrey extends SpringProxy
+interface SpringProxy #DarkGrey
 note top
 所有Spring的AOP代理对象都会实现,标记接口
 可以用来检查代理对象是不是生成的
 end note
-AopUtils -- SpringProxy
 
 class ProxyConfig{
 	- boolean proxyTargetClass = false;

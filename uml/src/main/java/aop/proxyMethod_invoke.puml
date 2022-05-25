@@ -1,0 +1,33 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+floating note
+责任链模式,自调用实现
+DynamicAdvisedInterceptor 实现cglib的MethodInterceptor接口
+代理对象调用 DynamicAdvisedInterceptor.intercept 方法,来调用advice的逻辑
+
+end note
+start
+:proxyObject.invoke method;
+
+:DynamicAdvisedInterceptor.intercept;
+
+:create CglibMethodInvocation;
+:CglibMethodInvocation.proceed();
+
+while (所有拦截器是否调用结束?)
+    card MethodInterceptor.invoke  #tan {
+        :拦截器逻辑;
+        :mi.proceed()
+         若proceed方法未调用
+         则后续所有的逻辑都不会执行
+         包括被代理对象的逻辑;
+        -[#red]-> ;
+    }
+endwhile
+-[#blue]-> 拦截器调用结束;
+:CglibMethodInvocation.invokeJoinpoint()
+调用实际的方法;
+
+stop
+
+@enduml
