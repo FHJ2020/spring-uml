@@ -1,0 +1,433 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+'DarkGrey 标记接口
+
+namespace cglib {
+    interface MethodInterceptor extends Callback {
+        Object intercept(Object var1, Method var2, Object[] var3, MethodProxy var4) throws Throwable;
+    }
+}
+
+interface Ordered {
+	int HIGHEST_PRECEDENCE = Integer.MIN_VALUE;
+	int LOWEST_PRECEDENCE = Integer.MAX_VALUE;
+	+ int getOrder()
+}
+
+'joinpoint
+namespace joinpointInterfaces {
+
+    interface Joinpoint{
+        + Object proceed()
+        + Object getThis()
+        + AccessibleObject getStaticPart()
+    }
+    interface Invocation extends Joinpoint{
+        + Object[] getArguments()
+    }
+    interface MethodInvocation extends Invocation{
+        + Method getMethod()
+    }
+    interface ProxyMethodInvocation extends MethodInvocation{
+        + Object getProxy();
+        + MethodInvocation invocableClone();
+        + MethodInvocation invocableClone(Object... arguments);
+        + void setArguments(Object... arguments);
+        + void setUserAttribute(String key, @Nullable Object value);
+        + Object getUserAttribute(String key);
+    }
+
+
+
+    interface ConstructorInvocation extends Invocation
+
+    interface Pointcut{
+        ClassFilter getClassFilter();
+        MethodMatcher getMethodMatcher();
+    }
+    interface ExpressionPointcut extends Pointcut{
+        String getExpression()
+    }
+
+
+
+
+    class DynamicAdvisedInterceptor implements cglib.MethodInterceptor{
+        - AdvisedSupport advised
+    }
+    note bottom of  DynamicAdvisedInterceptor
+    实现了cglib的拦截接口,并通过advised对象持有advisor
+    intercept方法调用时从advised获得相关的advisor,
+    再将advisor中advice转成spring.MethodInterceptor
+    end note
+
+
+    class ReflectiveMethodInvocation implements ProxyMethodInvocation{
+        - List<?> interceptorsAndDynamicMethodMatchers;
+        - int currentInterceptorIndex
+        + Object proceed()
+        + Object invokeJoinpoint()
+    }
+    note right of ReflectiveMethodInvocation
+    **proceed()**
+    链式的方式调用拦截器
+    **interceptorsAndDynamicMethodMatchers**
+    拦截器列表
+    **currentInterceptorIndex**
+    拦截器索引
+    **invokeJoinpoint()**
+    当拦截器调用结束,调用实际对象的方法
+    end note
+
+    class CglibMethodInvocation extends ReflectiveMethodInvocation{
+        - MethodProxy methodProxy
+        + Object proceed()
+    }
+
+    interface MethodInterceptor extends Interceptor{
+        Object invoke(@Nonnull MethodInvocation invocation)
+    }
+}
+
+
+'Advice
+namespace adviceInterfaces {
+
+
+    interface Advice #DarkGrey
+    note bottom of Advice
+    advice子类有2中区分
+    #实现了MethodInterceptor接口
+    #未实现MethodInterceptor接口
+     未实现MethodInterceptor接口的类,在使用时最终
+     都不会被包装成MethodInterceptor的子类,以实现
+     advice的一致性调用
+    end note
+
+    interface AfterAdvice #DarkGrey
+    AfterAdvice --|> Advice
+    interface DynamicIntroductionAdvice{
+        boolean implementsInterface(Class<?> intf)
+    }
+    DynamicIntroductionAdvice --|> Advice
+
+    interface AfterReturningAdvice extends AfterAdvice{
+        void afterReturning(@Nullable Object returnValue, Method method, Object[] args, @Nullable Object target)
+    }
+    interface ThrowsAdvice #DarkGrey extends AfterAdvice
+    interface BeforeAdvice #DarkGrey extends Advice {
+    }
+    interface MethodBeforeAdvice  {
+        void before(Method method, Object[] args, @Nullable Object target)
+    }
+    MethodBeforeAdvice --|> BeforeAdvice
+
+
+    'Interceptor
+    interface Interceptor #DarkGrey extends Advice
+    interface ConstructorInterceptor extends Interceptor{
+        + Object construct(ConstructorInvocation invocation)
+    }
+    interface MethodInterceptor extends Interceptor{
+        + Object invoke(MethodInvocation mi)
+    }
+
+
+}
+
+
+
+
+
+'Advisor
+namespace advisorInterfaces {
+    interface Advisor #tan {
+        + Advice getAdvice()
+        + boolean isPerInstance()
+    }
+
+    interface PointcutAdvisor extends Advisor{
+        + Pointcut getPointcut()
+    }
+
+    interface InstantiationModelAwarePointcutAdvisor extends PointcutAdvisor{
+    }
+    interface IntroductionAdvisor extends Advisor, IntroductionInfo
+}
+note top of advisorInterfaces
+Advisor关联advice和pointcut
+spring是通过代理方式实现aop的,所以实例方法是joinpoint的最小单位
+spring在postProcessAfterInitialization中使用pointcut,
+过滤出符合条件的实例方法(即joinpoint),对bean,准备来说是对bean
+的某个方法进行代理.
+底层使用用ProxyMethodInvocation调用advice和实际的方法
+
+end note
+
+advisorInterfaces.Advisor -[#blue]--> adviceInterfaces.Advice
+advisorInterfaces.PointcutAdvisor -[#blue]--> joinpointInterfaces.Joinpoint
+
+
+
+class ProxyProcessorSupport extends ProxyConfig implements  BeanClassLoaderAware, AopInfrastructureBean {
+     + int getOrder()
+}
+
+
+
+'IntroductionInfos
+namespace IntroductionInfoInterfaces{
+    interface IntroductionInfo
+
+    interface IntroductionAdvisor extends advisorInterfaces.Advisor, IntroductionInfo
+
+    interface IntroductionInterceptor extends MethodInterceptor, DynamicIntroductionAdvice
+
+    class IntroductionInfoSupport implements IntroductionInfo
+    class DefaultIntroductionAdvisor implements IntroductionAdvisor, ClassFilter
+    class DelegatingIntroductionInterceptor extends IntroductionInfoSupport implements IntroductionInterceptor
+    note bottom of DelegatingIntroductionInterceptor
+    ScopedProxyFactoryBean
+    end note
+    class DeclareParentsAdvisor implements IntroductionAdvisor
+    class DelegatePerTargetObjectIntroductionInterceptor extends IntroductionInfoSupport implements IntroductionInterceptor
+    note bottom of DelegatePerTargetObjectIntroductionInterceptor
+    <aop:declare-parents />
+    DeclareParentsAdvisor
+    多个对象可以共用一个interceptor
+    end note
+}
+
+
+
+' beanPostProcessor
+package beanPostProcessor{
+    abstract class AbstractAutoProxyCreator #tan extends .ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor{
+        - Map<Object, Class<?>> proxyTypes
+        - Map<Object, Boolean> advisedBeans
+        + Object getEarlyBeanReference(Object bean, String beanName)
+        + Object postProcessAfterInitialization(@Nullable Object bean, String beanName)
+    }
+    note right of AbstractAutoProxyCreator
+    从beanFactory查找所有advisor类型的beanDefinition
+    使用advisor的pointcut对bean进行匹配,符合则创建代理对象
+    **advisedBeans**bean 是否需要被通知的缓存
+    key:beanName
+    value:是否需要进行代理
+    ===
+    **advisedBeans**
+    key:beanName
+    value:被代理类的class对象
+    end note
+
+    abstract class AbstractAdvisorAutoProxyCreator  extends AbstractAutoProxyCreator  {
+
+    }
+
+
+    class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator
+    class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator
+
+
+}
+note top of beanPostProcessor
+AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作为优先级,越大优先级越高
+    APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
+    APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
+注册时会判断是否已经存在该类型的beanPostProcessor,
+如果存在继续判断优先级,如果比原来的高,则修改beanDefinition的beanClass
+为当前的beanPostProcessor
+end note
+
+
+' factory
+package factory{
+    interface Advised #AntiqueWhite extends .TargetClassAware {
+    	void setTargetSource(TargetSource targetSource);
+    	TargetSource getTargetSource();
+    	Advisor[] getAdvisors();
+    	void addAdvisor(Advisor advisor)
+    	void addAdvice(Advice advice)
+    }
+    note top of Advised
+    AbstractAutoProxyCreator#createProxy
+    aop工厂的父类,保存aop代理工厂的配置信息
+    advisor,advice,targetSource
+    从spring中获取的aop代理对象,都可以转成该接口
+    end note
+
+    class AdvisedSupport extends ProxyConfig implements Advised{
+        - Map<MethodCacheKey, List<Object>> methodCache
+        - List<Advisor> advisors
+    }
+
+
+    interface FactoryBean
+    note top
+    BeanFactory.FACTORY_BEAN_PREFIX="&"
+    所有注册到容器中的 factoryBean 的名字前缀
+    前缀+beanName获取factoryBean实例,
+    beanName获取factoryBean创建的实例
+    end note
+
+
+    class ProxyCreatorSupport extends AdvisedSupport{
+        - AopProxyFactory aopProxyFactory
+    }
+
+    ProxyCreatorSupport::aopProxyFactory -----> AopProxyFactory
+
+
+
+    class ProxyFactory extends ProxyCreatorSupport {
+        + Object getProxy()
+        + Object getProxy(@Nullable ClassLoader classLoader)
+    }
+    note bottom of ProxyFactory
+    不依赖Ioc容器方式,创建proxy对象
+    end note
+
+    class ScopedProxyFactoryBean extends ProxyConfig implements FactoryBean,AopInfrastructureBean{
+
+    }
+    note bottom of ScopedProxyFactoryBean
+    <aop:scoped-proxy />
+    **ScopedProxyFactoryBean#setBeanFactory**
+    使用 ProxyFactory 创建代理对象
+    添加DelegatingIntroductionInterceptor作为advisor
+    **DelegatingIntroductionInterceptor**
+    创建代理对象时会让代理对象实现scopedObject接口
+    scopedObject 即Introduction类型接口
+    调用invoke方法会判断是否Introduction类型接口
+    是则直接调用 scopedObject 接口上的方法,不会拦截该接口
+    不是则继续正常的拦截流程
+    代理对象中持有的是DefaultScopedObject对象,
+    DefaultScopedObject对实际代理对象进行包装
+
+
+    end note
+
+    class MethodLocatingFactoryBean implements FactoryBean
+    note bottom of MethodLocatingFactoryBean
+    返回一个方法
+    end note
+
+    class ProxyFactoryBean extends ProxyCreatorSupport implements FactoryBean{
+
+    }
+    note bottom of ProxyFactoryBean
+    Ioc容器创建proxy对象
+    end note
+    class AspectJProxyFactory extends ProxyCreatorSupport
+
+
+
+    interface AopProxyFactory {
+        + AopProxy createAopProxy(AdvisedSupport config)
+    }
+    class DefaultAopProxyFactory implements AopProxyFactory {
+    }
+    AopProxyFactory::createAopProxy ----> proxy.AopProxy : 委托创建代理对象
+
+}
+
+'proxy
+package proxy {
+
+
+    interface AopProxy{
+        + Object getProxy();
+        + Object getProxy(@Nullable ClassLoader classLoader);
+    }
+    note bottom of AopProxy
+    CglibAopProxy
+    调用AopProxyUtils.completeProxiedInterfaces 找出aop需要的接口
+    计算时是根据 AdvisedSupport 的子类,即实际的代理工厂来找的
+    SpringProxy、Advised
+    ===
+    子类调用拦截器都是通过, ReflectiveMethodInvocation
+    end note
+    class CglibAopProxy implements AopProxy
+    class ObjenesisCglibAopProxy extends CglibAopProxy
+    class JdkDynamicAopProxy implements AopProxy, InvocationHandler
+
+
+
+}
+
+'===========
+
+
+AbstractAutoProxyCreator::postProcessAfterInitialization -[#blue]--> ProxyFactory : 调用factory创建代理对象
+'static
+card static {
+    class AopContext{
+        - ThreadLocal<Object> currentProxy
+    }
+}
+
+
+
+class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource
+abstract class AbstractPrototypeBasedTargetSource extends AbstractBeanFactoryBasedTargetSource
+class PrototypeTargetSource extends AbstractPrototypeBasedTargetSource
+class SimpleBeanTargetSource extends AbstractBeanFactoryBasedTargetSource
+abstract class AbstractBeanFactoryBasedTargetSource implements TargetSource
+abstract class AbstractPoolingTargetSource extends AbstractPrototypeBasedTargetSource implements PoolingConfig
+class CommonsPool2TargetSource extends AbstractPoolingTargetSource
+
+interface TargetSource extends TargetClassAware
+abstract class AopUtils{
+	+ static boolean isAopProxy(@Nullable Object object)
+	+ static boolean isJdkDynamicProxy(@Nullable Object object)
+	+ static boolean isCglibProxy(@Nullable Object object)
+}
+interface TargetClassAware {
+	+ Class<?> getTargetClass();
+}
+interface AopInfrastructureBean #DarkGrey
+note top
+标记接口,所有标记这个接口的类,Spring
+不会使用自动代理,即使pointcut匹配
+end note
+
+
+class ScopedObject
+
+
+
+interface TransactionalProxy #DarkGrey extends SpringProxy
+interface SpringProxy #DarkGrey
+note top
+所有Spring的AOP代理对象都会实现,标记接口
+可以用来检查代理对象是不是生成的
+end note
+
+class ProxyConfig{
+	- boolean proxyTargetClass = false;
+	- boolean optimize = false;
+	- boolean opaque = false;
+	- boolean exposeProxy = false;
+	- boolean frozen = false;
+	+ void copyFrom(ProxyConfig other)
+}
+skinparam GroupInheritance 4
+
+
+
+interface AspectInstanceFactory {
+     + int getOrder()
+}
+class SimpleBeanFactoryAwareAspectInstanceFactory implements AspectInstanceFactory
+
+
+
+
+
+
+
+
+@enduml

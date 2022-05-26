@@ -14,7 +14,7 @@ start
 :create CglibMethodInvocation;
 :CglibMethodInvocation.proceed();
 
-while (所有拦截器是否调用结束?)
+while (所有拦截器是否调用结束?) is (未结束)
     card MethodInterceptor.invoke  #tan {
         :拦截器逻辑;
         :mi.proceed()
@@ -23,7 +23,7 @@ while (所有拦截器是否调用结束?)
          包括被代理对象的逻辑;
         -[#red]-> ;
     }
-endwhile
+endwhile (结束)
 -[#blue]-> 拦截器调用结束;
 :CglibMethodInvocation.invokeJoinpoint()
 调用实际的方法;

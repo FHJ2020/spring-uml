@@ -1,0 +1,88 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+'Advice
+package advicesAll {
+
+    package adviceInterfaces{
+
+        interface Advice #DarkGrey
+        interface AfterAdvice #DarkGrey
+        AfterAdvice --|> Advice
+        interface DynamicIntroductionAdvice
+        DynamicIntroductionAdvice --|> Advice
+
+        interface AfterReturningAdvice extends AfterAdvice{
+            void afterReturning(@Nullable Object returnValue, Method method, Object[] args, @Nullable Object target)
+        }
+        interface ThrowsAdvice #DarkGrey extends AfterAdvice
+        interface BeforeAdvice #DarkGrey extends Advice {
+        }
+        interface MethodBeforeAdvice  {
+            void before(Method method, Object[] args, @Nullable Object target)
+        }
+        MethodBeforeAdvice --|> BeforeAdvice
+    }
+
+
+
+
+
+    'Interceptor
+    package InterceptorInterfaces{
+        interface Interceptor extends Advice
+        interface ConstructorInterceptor extends Interceptor
+        interface MethodInterceptor extends Interceptor{
+            + Object invoke(MethodInvocation mi)
+        }
+    }
+
+    'wrap
+    package wrapAdviceToInterceptor{
+        class MethodBeforeAdviceInterceptor implements MethodInterceptor, BeforeAdvice {
+            - MethodBeforeAdvice advice
+        }
+
+        class AfterReturningAdviceInterceptor implements MethodInterceptor, AfterAdvice{
+            - AfterReturningAdvice advice
+        }
+        class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
+            - Object throwsAdvice
+        }
+    }
+
+
+
+    package aspectJ {
+        interface AspectJPrecedenceInformation{
+            + int getOrder()
+        }
+
+        abstract class AbstractAspectJAdvice
+        AbstractAspectJAdvice ..|> Advice
+        AbstractAspectJAdvice ..|> AspectJPrecedenceInformation
+
+        AbstractAspectJAdviceImpls -u-|> AbstractAspectJAdvice #line:MediumBlue
+        package AbstractAspectJAdviceImpls{
+            'class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements MethodBeforeAdvice
+            AspectJMethodBeforeAdvice ..|> MethodBeforeAdvice
+
+            'class AspectJAfterReturningAdvice extends AbstractAspectJAdvice implements AfterReturningAdvice, AfterAdvice
+            AspectJAfterReturningAdvice ..|> AfterReturningAdvice
+
+            package MethodInterceptors {
+                'class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+                class AspectJAfterThrowingAdvice
+                AspectJAfterThrowingAdvice ..|> AfterAdvice
+                'class AspectJAroundAdvice extends AbstractAspectJAdvice implements MethodInterceptor
+                class AspectJAroundAdvice
+                'class AspectJAfterAdvice extends AbstractAspectJAdvice implements MethodInterceptor, AfterAdvice
+                class AspectJAfterAdvice
+                AspectJAfterAdvice ..|> AfterAdvice
+            }
+            MethodInterceptors ..|> MethodInterceptor #line:red
+        }
+    }
+}
+
+@enduml

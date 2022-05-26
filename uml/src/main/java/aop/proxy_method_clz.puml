@@ -8,7 +8,14 @@ namespace cglib {
 }
 namespace spring{
 
-    class DynamicAdvisedInterceptor implements cglib.MethodInterceptor
+    class DynamicAdvisedInterceptor implements cglib.MethodInterceptor{
+        - AdvisedSupport advised
+    }
+    note bottom of  DynamicAdvisedInterceptor
+    实现了cglib的拦截接口,并通过advised对象持有advisor
+    intercept方法调用时从advised获得相关的advisor,
+    再将advisor中advice转成spring.MethodInterceptor
+    end note
 
 
     interface Joinpoint {
@@ -24,19 +31,30 @@ namespace spring{
     interface MethodInvocation extends Invocation{
         + Method getMethod();
     }
-    note bottom of MethodInvocation
-    proceed 自调用实现链模式,即调用下一个MethodInterceptor
-    end note
 
     interface ProxyMethodInvocation extends MethodInvocation{
         + Object getProxy();
     }
 
     class ReflectiveMethodInvocation implements ProxyMethodInvocation{
-
+        - List<?> interceptorsAndDynamicMethodMatchers;
+        - int currentInterceptorIndex
+        + Object proceed()
+        + Object invokeJoinpoint()
     }
+    note right of ReflectiveMethodInvocation
+    **proceed()**
+    链式的方式调用拦截器
+    **interceptorsAndDynamicMethodMatchers**
+    拦截器列表
+    **currentInterceptorIndex**
+    拦截器索引
+    **invokeJoinpoint()**
+    当拦截器调用结束,调用实际对象的方法
+    end note
 
     class CglibMethodInvocation extends ReflectiveMethodInvocation{
+        - MethodProxy methodProxy
         + Object proceed()
     }
 
