@@ -1,0 +1,28 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+card new_SpringApplication() #skyblue{
+
+    :WebApplicationType.deduceFromClasspath();
+
+    :getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
+
+    :getSpringFactoriesInstances(ApplicationContextInitializer.class);
+
+    :getSpringFactoriesInstances(ApplicationListener.class));
+
+    :deduceMainApplicationClass();
+}
+card run_SpringApplication {
+    :createBootstrapContext()
+    bootstrapRegistryInitializers.initialize
+    ;
+
+
+}
+
+stop
+
+@enduml

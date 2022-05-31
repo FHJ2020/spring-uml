@@ -71,7 +71,10 @@ namespace joinpointInterfaces {
     }
     note right of ReflectiveMethodInvocation
     **proceed()**
-    链式的方式调用拦截器
+    内部逻辑有3个分之:
+    #链式的方式调用拦截器
+    #jointpoint点调用
+    #InterceptorAndDynamicMethodMatcher逻辑处理,未看
     **interceptorsAndDynamicMethodMatchers**
     拦截器列表
     **currentInterceptorIndex**
@@ -176,6 +179,7 @@ class ProxyProcessorSupport extends ProxyConfig implements  BeanClassLoaderAware
 
 
 
+
 'IntroductionInfos
 namespace IntroductionInfoInterfaces{
     interface IntroductionInfo
@@ -188,7 +192,9 @@ namespace IntroductionInfoInterfaces{
     class DefaultIntroductionAdvisor implements IntroductionAdvisor, ClassFilter
     class DelegatingIntroductionInterceptor extends IntroductionInfoSupport implements IntroductionInterceptor
     note bottom of DelegatingIntroductionInterceptor
-    ScopedProxyFactoryBean
+    一个aop对象一个DelegatingIntroductionInterceptor拦截器
+    ScopedProxyFactoryBean 使用
+    逻辑同 DelegatePerTargetObjectIntroductionInterceptor
     end note
     class DeclareParentsAdvisor implements IntroductionAdvisor
     class DelegatePerTargetObjectIntroductionInterceptor extends IntroductionInfoSupport implements IntroductionInterceptor
@@ -196,6 +202,10 @@ namespace IntroductionInfoInterfaces{
     <aop:declare-parents />
     DeclareParentsAdvisor
     多个对象可以共用一个interceptor
+    **invoke**
+    内部2个分之
+    #处理Introduction接口相关的调用,不走后续的advice
+    #处理Introduction接口相关的调用,走后续的advice
     end note
 }
 
@@ -242,9 +252,10 @@ AopConfigUtils.APC_PRIORITY_LIST 保存了3个类的优先级,以索引顺序作
 为当前的beanPostProcessor
 end note
 
+interface TargetClassAware
 
 ' factory
-package factory{
+namespace factory{
     interface Advised #AntiqueWhite extends .TargetClassAware {
     	void setTargetSource(TargetSource targetSource);
     	TargetSource getTargetSource();
@@ -253,10 +264,12 @@ package factory{
     	void addAdvice(Advice advice)
     }
     note top of Advised
+    **Introduction**类型接口
     AbstractAutoProxyCreator#createProxy
     aop工厂的父类,保存aop代理工厂的配置信息
     advisor,advice,targetSource
     从spring中获取的aop代理对象,都可以转成该接口
+    **将对象转成该类型可以动态的修改advice**
     end note
 
     class AdvisedSupport extends ProxyConfig implements Advised{
@@ -361,7 +374,8 @@ package proxy {
 '===========
 
 
-AbstractAutoProxyCreator::postProcessAfterInitialization -[#blue]--> ProxyFactory : 调用factory创建代理对象
+AbstractAutoProxyCreator::postProcessAfterInitialization -[#blue]--> factory.ProxyFactory : 调用factory创建代理对象
+
 'static
 card static {
     class AopContext{
@@ -370,16 +384,35 @@ card static {
 }
 
 
+namespace TargetSources {
+    interface TargetSource extends .TargetClassAware {
+        + Class<?> getTargetClass();
+        + boolean isStatic();
+        + Object getTarget() throws Exception;
+        + void releaseTarget(Object target) throws Exception;
+    }
+    note left of TargetSource
+    代理对象的包装类
+    end note
+    abstract class AbstractPrototypeBasedTargetSource extends AbstractBeanFactoryBasedTargetSource
+    abstract class AbstractBeanFactoryBasedTargetSource implements TargetSource
+    abstract class AbstractPoolingTargetSource extends AbstractPrototypeBasedTargetSource implements PoolingConfig
 
-class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource
-abstract class AbstractPrototypeBasedTargetSource extends AbstractBeanFactoryBasedTargetSource
-class PrototypeTargetSource extends AbstractPrototypeBasedTargetSource
-class SimpleBeanTargetSource extends AbstractBeanFactoryBasedTargetSource
-abstract class AbstractBeanFactoryBasedTargetSource implements TargetSource
-abstract class AbstractPoolingTargetSource extends AbstractPrototypeBasedTargetSource implements PoolingConfig
-class CommonsPool2TargetSource extends AbstractPoolingTargetSource
+    class LazyInitTargetSource extends AbstractBeanFactoryBasedTargetSource
+    class PrototypeTargetSource extends AbstractPrototypeBasedTargetSource
+    class SimpleBeanTargetSource extends AbstractBeanFactoryBasedTargetSource
+    note bottom of SimpleBeanTargetSource
+    scoped-proxy 使用
+    解决singleton依赖prototype时,prototype使用时不会重新创建
+    getTarget()方法从beanFactory中返回原型对象
+    end note
+    class CommonsPool2TargetSource extends AbstractPoolingTargetSource
+    class SingletonTargetSource implements TargetSource
 
-interface TargetSource extends TargetClassAware
+}
+
+
+
 abstract class AopUtils{
 	+ static boolean isAopProxy(@Nullable Object object)
 	+ static boolean isJdkDynamicProxy(@Nullable Object object)
@@ -414,6 +447,10 @@ class ProxyConfig{
 	- boolean frozen = false;
 	+ void copyFrom(ProxyConfig other)
 }
+note top of ProxyConfig
+[[https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#aop-pfb spring]]
+end note
+
 skinparam GroupInheritance 4
 
 

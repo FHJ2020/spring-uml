@@ -1,0 +1,153 @@
+@startuml
+
+
+namespace spring_core {
+    class SpringFactoriesLoader
+    note bottom of SpringFactoriesLoader
+    META-INF/spring.factories
+    end note
+}
+namespace spring_context #skyblue {
+
+    interface ApplicationContextInitializer<C extends ConfigurableApplicationContext>{
+        void initialize(C applicationContext)
+    }
+    note top of ApplicationContextInitializer
+    在ConfigurableApplicationContext调用refresh之前
+    调用initialize初始化context
+    end note
+
+    interface ImportSelector
+    note top of ImportSelector
+    子类决定 @Configuration 类被导入
+    功能类似@Import
+    end note
+
+    interface DeferredImportSelector extends ImportSelector
+    note top of DeferredImportSelector
+    所有@Configuration处理后,
+    @Conditional
+    end note
+    interface Group
+    note bottom of Group
+    AnnotationMetadata
+    end note
+
+    'ImportBeanDefinitionRegistrar
+    interface ImportBeanDefinitionRegistrar
+    note top of ImportBeanDefinitionRegistrar
+    registerBeanDefinitions
+
+    处理时@Configuration,注册额外的beanDefinition
+    @Configuration and ImportSelector,
+    end note
+    class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar
+}
+
+namespace spring_boot #DarkGrey{
+    class SpringApplication {
+        static final SpringApplicationShutdownHook shutdownHook
+        ===
+        - Set<Class<?>> primarySources;
+        - Set<String> sources
+        - Class<?> mainApplicationClass;
+        ===
+        ResourceLoader resourceLoader
+        BeanNameGenerator beanNameGenerator
+        ConfigurableEnvironment environment
+        WebApplicationType webApplicationType
+        ===
+        List<ApplicationContextInitializer<?>> initializers
+        List<ApplicationListener<?>> listeners
+        List<BootstrapRegistryInitializer> bootstrapRegistryInitializers
+        ---
+        ApplicationContextFactory applicationContextFactory = ApplicationContextFactory.DEFAULT
+        ApplicationStartup applicationStartup = ApplicationStartup.DEFAULT
+
+    }
+    note top of SpringApplication
+    创建一个ApplicationContext
+    注册CommandLinePropertySource,将命令行参数变成spring properties
+    刷新context,加载所有的singleton bean
+    触发CommandLineRunner bean
+    ===
+    从不同的源中读取bean
+    AnnotatedBeanDefinitionReader
+    XmlBeanDefinitionReader
+    ClassPathBeanDefinitionScanner
+    end note
+
+    interface BootstrapRegistryInitializer
+    note top of BootstrapRegistryInitializer
+    初始化BootstrapRegistry
+    end note
+
+    interface ApplicationContextFactory {
+        ConfigurableApplicationContext create(WebApplicationType webApplicationType)
+    }
+    note top of ApplicationContextFactory
+    context的工厂类,根据不同WebApplicationType返回不同的context实例
+    由SpringApplication进行配置和调用refresh方法
+    默认返回 AnnotationConfigApplicationContext
+    AnnotationConfigServletWebServerApplicationContext
+    AnnotationConfigReactiveWebServerApplicationContext
+    AnnotationConfigApplicationContext
+    end note
+
+    interface CommandLineRunner
+    interface DeterminableImports
+    note right of DeterminableImports
+    ImportSelector 和 ImportBeanDefinitionRegistrar 的子类实现
+    可以提早确定哪些类型被导入
+    end note
+
+
+    interface BootstrapContext
+    interface BootstrapRegistry
+    interface ConfigurableBootstrapContext extends BootstrapRegistry, BootstrapContext
+    class DefaultBootstrapContext implements ConfigurableBootstrapContext
+    note bottom of DefaultBootstrapContext
+    保存context准备阶段需要用到的bean
+    调用bootstrapRegistryInitializers.initialize
+    end note
+
+
+    interface SpringApplicationRunListener
+    class EventPublishingRunListener implements SpringApplicationRunListener
+}
+
+
+
+namespace boot_autoconfigure{
+    class AutoConfigurationImportSelector implements spring_context.DeferredImportSelector
+    note right of AutoConfigurationImportSelector
+    处理@EnableAutoConfiguration
+    end note
+
+
+
+    class ImportAutoConfigurationImportSelector extends AutoConfigurationImportSelector implements spring_boot.DeterminableImports
+    note right of ImportAutoConfigurationImportSelector
+    @ImportAutoConfiguration
+    end note
+
+    'class AutoConfigurationPackages_Registrar implements spring_context.ImportBeanDefinitionRegistrar, spring_boot.DeterminableImports
+     AutoConfigurationPackages_Registrar .u..|> spring_context.ImportBeanDefinitionRegistrar
+     AutoConfigurationPackages_Registrar .u..|> spring_boot.DeterminableImports
+
+}
+
+
+namespace cloud_bootstrap {
+    'class BootstrapImportSelector implements spring_context.DeferredImportSelector
+    BootstrapImportSelector .u..|> spring_context.DeferredImportSelector
+    note right of BootstrapImportSelector
+    使用SpringFactoriesLoader加载spring.factories.
+    end note
+
+}
+
+
+
+
+@enduml
