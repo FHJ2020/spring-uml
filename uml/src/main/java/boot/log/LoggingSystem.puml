@@ -1,0 +1,45 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class LoggingSystemProperties
+
+class LoggingApplicationListener{
+    onApplicationStartingEvent(ApplicationStartingEvent event)
+    onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event)
+    onContextClosedEvent()
+    onApplicationFailedEvent()
+}
+note top of LoggingApplicationListener
+    **onApplicationStartingEvent**
+    初始化日志系统
+    **onApplicationEnvironmentPreparedEvent**
+    从environment中读取日志系统的配置
+    日志系统本身的文件配置
+
+
+end note
+
+abstract class LoggingSystem
+note top of LoggingSystem
+    **spring.properties**
+    org.springframework.boot.logging.LoggingSystemFactory=
+    org.springframework.boot.logging.logback.LogbackLoggingSystem.Factory,
+    org.springframework.boot.logging.log4j2.Log4J2LoggingSystem.Factory,
+    org.springframework.boot.logging.java.JavaLoggingSystem.Factory
+    ===
+    **选择逻辑**
+    优先从系统属性中获取LoggingSystem的实现类命 System.getProperty(SYSTEM_PROPERTY);
+    不存在,则通过DelegatingLoggingSystemFactory
+    从spring.properties中配置的多个子类中,选择在classpath中的日志系统.
+    classpath下有多个日志系统,选择spring.properties中排在前面的
+end note
+
+abstract class AbstractLoggingSystem extends LoggingSystem
+
+class JavaLoggingSystem extends AbstractLoggingSystem
+
+abstract class Slf4JLoggingSystem extends AbstractLoggingSystem
+class Log4J2LoggingSystem extends Slf4JLoggingSystem
+class LogbackLoggingSystem extends Slf4JLoggingSystem
+
+@enduml

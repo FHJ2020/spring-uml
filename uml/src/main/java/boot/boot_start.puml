@@ -1,9 +1,19 @@
 @startuml
 'https://plantuml.com/activity-diagram-beta
 
+floating note
+spring.factories
+配置了各种spring需要的组件
+spring-boot
+#LoggingSystemFactory 日志组件
+#PropertySourceLoader
+end note
+
 start
 
-card new_SpringApplication() #skyblue{
+
+
+card new_springApplication #SlateGray {
 
     :WebApplicationType.deduceFromClasspath();
 
@@ -12,16 +22,92 @@ card new_SpringApplication() #skyblue{
     :getSpringFactoriesInstances(ApplicationContextInitializer.class);
 
     :getSpringFactoriesInstances(ApplicationListener.class));
+    note
+    runListeners 向ApplicationListener发布事件
+    ====
+    LoggingApplicationListener
+    初始化日志系统
+
+    end note
 
     :deduceMainApplicationClass();
 }
-card run_SpringApplication {
-    :createBootstrapContext()
-    bootstrapRegistryInitializers.initialize
-    ;
 
 
+card run_springApplication #tan {
+    card createBootstrapContext #skyblue{
+        #GoldenRod:new DefaultBootstrapContext();
+        #GoldenRod:this.bootstrapRegistryInitializers.initialize;
+        note
+        往BootstrapRegistry中注册一些需要使用的bean
+        end note
+    }
+
+    :configureHeadlessProperty();
+
+    :SpringApplicationRunListeners listeners = getRunListeners(args);
+    note
+    获取事务广播器 EventPublishingRunListener
+    使用SimpleApplicationEventMulticaster发布事件
+    end note
+
+    #pink:listeners.starting(bootstrapContext,mainApplicationClass);
+
+    card createBootstrapContext #skyblue{
+        :getOrCreateEnvironment();
+        :configureEnvironment;
+        #pink:runListeners.environmentPrepared;
+        :bindToSpringApplication(environment);
+    }
+
+    :configureIgnoreBeanInfo(environment);
+
+    #GoldenRod:createApplicationContext();
+
+    card prepareContext #skyblue{
+        :context.setEnvironment(environment);
+        :postProcessApplicationContext(context);
+        :applyInitializers(context);
+        note
+        调用ApplicationContextInitializer初始化
+        ConfigurableApplicationContext
+        end note
+        #pink:runListeners.contextPrepared(context);
+        #GoldenRod:bootstrapContext.close(context);
+        :
+         context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor())
+        ;
+        card load #gray {
+            :new BeanDefinitionLoader(registry, sources);
+            :loader.load();
+            note
+            处理sources和primarySources
+            primarySources,即run方法的参数
+            sources什么时候有值?
+            end note            
+        }
+        #pink:runListeners.contextLoaded(context);
+    }
+    #GoldenRod:refreshContext(context);
+    #pink:runListeners.started(context, timeTakenToStartup);
+    :callRunners(context, applicationArguments);
+    note
+    调用以下2个runner,并且前面的优先调用
+    ApplicationRunner.class
+    CommandLineRunner.class
+    end note
+    #pink:runListeners.ready(context, timeTakenToReady);
 }
+
+
+
+
+
+
+
+
+
+
 
 stop
 
