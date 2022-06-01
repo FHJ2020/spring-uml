@@ -228,6 +228,7 @@ card run_springApplication #tan {
 
     #pink:runListeners.started(context, timeTakenToStartup);
     note right
+
     end note
 
     :callRunners(context, applicationArguments);
