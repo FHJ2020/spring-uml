@@ -228,6 +228,14 @@ card run_springApplication #tan {
 
     #pink:runListeners.started(context, timeTakenToStartup);
     note right
+    ApplicationStartedEvent
+    ====
+    StartupTimeMetricsListener
+    统计
+    ====
+    TomcatMetricsBinder
+    ====
+
 
     end note
 
