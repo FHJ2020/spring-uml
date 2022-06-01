@@ -2,6 +2,15 @@
 'https://plantuml.com/activity-diagram-beta
 
 floating note
+**设计逻辑**
+BootstrapRegistryInitializer
+注册bean的supplier,与closedListener
+
+ApplicationListener
+利用事件的订阅与发布实现组件之间的解耦
+
+ApplicationContextInitializer
+
 **spring.factories**
 配置了各种spring需要的组件
 spring-boot
@@ -11,7 +20,13 @@ spring-boot
 ----
 **getSpringFactoriesInstances**
 从文件中获取配置的组件
+====
+
+bootStrap阶段
+
+application阶段
 end note
+
 
 start
 
@@ -27,7 +42,7 @@ card new_springApplication #SlateGray {
 
     :getSpringFactoriesInstances(ApplicationListener.class));
     note
-    向SpringApplication注册ApplicationListener
+    向SpringApplication注册 ApplicationListener 实例
     end note
 
     :deduceMainApplicationClass();
@@ -38,12 +53,25 @@ card run_springApplication #tan {
     card createBootstrapContext #skyblue{
         #GoldenRod:new DefaultBootstrapContext();
         note
+        initializers注册的supplier
+        Map<Class<?>, InstanceSupplier<?>> instanceSuppliers = new HashMap<>()
+        ====
+        supplier创建bean后,对bean的缓存
+        Map<Class<?>, Object> instances = new HashMap<>()
+        ====
         内部有一个独立的事件广播器SimpleApplicationEventMulticaster
+        ApplicationEventMulticaster events = new SimpleApplicationEventMulticaster()
+        只发布 BootstrapContextClosedEvent 事件,DefaultBootstrapContext.close
         end note
         #GoldenRod:this.bootstrapRegistryInitializers.initialize;
         note
-        往BootstrapRegistry中注册一些需要使用的bean的supplier
-        注册CloseListener
+        往BootstrapRegistry(DefaultBootstrapContext)中注册一些需要使用的bean的supplier
+        注册CloseListener,
+        CloseListener: 在applicationContext准备好,从supplier中获取bean,注册到context中
+        ====
+        ConsulConfigServerBootstrapper
+        RefreshBootstrapRegistryInitializer
+        TextEncryptorConfigBootstrapper
         end note
     }
 
@@ -57,8 +85,9 @@ card run_springApplication #tan {
     # **每个SpringApplicationRunListener内部都有一个独立的事件广播器 SimpleApplicationEventMulticaster**
     SpringApplicationRunListener 实现类 EventPublishingRunListener
     ----
-    runListeners 向ApplicationListener发布事件
+    runListeners 向 ApplicationListener 发布事件
     SpringApplicationRunListeners ->  SpringApplicationRunListener -> SimpleApplicationEventMulticaster
+    ====
 
     end note
 
@@ -68,6 +97,9 @@ card run_springApplication #tan {
     ====
     LoggingApplicationListener
     初始化日志系统
+    ====
+    RestartApplicationListener
+    ====
     end note
 
     card createBootstrapContext #skyblue{
@@ -77,6 +109,26 @@ card run_springApplication #tan {
         note right
         ApplicationEnvironmentPreparedEvent
         ====
+        LoggingApplicationListener
+        使用配置属性,配置日志系统
+        ====
+        FileEncodingApplicationListener
+        判断spring.mandatory-file-encoding与file.encoding是否相等
+        ====
+        AnsiOutputApplicationListener
+        ====
+        DelegatingApplicationListener
+        context.listener.classes 将属性中配置的监听器
+        实例化,并且将事件发布给这些监听器
+        ====
+        BackgroundPreinitializer
+        启动一个线程进行预初始化,没有进行任何赋值,缓存？
+        ====
+        EnvironmentPostProcessorApplicationListener
+        从spring.factories中获取EnvironmentPostProcessor
+        ====
+        BootstrapApplicationListener
+
         end note
         :bindToSpringApplication(environment);
     }
@@ -91,23 +143,48 @@ card run_springApplication #tan {
         :applyInitializers(context);
         note
         调用ApplicationContextInitializer初始化
+
         ConfigurableApplicationContext
+        ====
+        ConfigurationWarningsApplicationContextInitializer
+        检测ComponentScan扫描的包是否非法
+        ====
+        ContextIdApplicationContextInitializer
+        初始化ContextId,spring.application.name
+        并注册ContextId bean
+        ====
+        ConfigDataApplicationContextInitializer
+        ====
+        ConditionEvaluationReportLoggingListener
+        ConditionEvaluationReport
+            factory中不存在则注册
+            存在则获取
+            在refreshed后,以debug级别输出
+        ====
+        RestartScopeInitializer
+        注册restart scope
+        ====
+        SharedMetadataReaderFactoryContextInitializer
+        添加BeanFactoryPostProcessor
+        CachingMetadataReaderFactoryPostProcessor
+        ====
+        EnvironmentDecryptApplicationInitializer
+        解密
         end note
 
         #pink:runListeners.contextPrepared(context);
         note right
         ApplicationContextInitializedEvent
         ====
-        123
+        没有使用
         end note
 
         #GoldenRod:bootstrapContext.close(context);
         note right
+        **BootstrapContextClosedEvent**
         applicationContext已经准备好了,可以进行bean注册了
         将bootstrapContext.supplier中的bean注册到applicationContext中
         BootstrapContextClosedEvent
-        ====
-        **ApplicationEventMulticaster**:DefaultBootstrapContext.events
         end note
 
         :
@@ -120,12 +197,39 @@ card run_springApplication #tan {
             处理sources和primarySources
             primarySources,即run方法的参数
             sources什么时候有值?
-            end note            
+            end note
         }
         #pink:runListeners.contextLoaded(context);
+        note right
+        ApplicationPreparedEvent
+        ====
+        RestartEndpoint
+
+        DevToolsLogFactory.Listener
+
+        RestartApplicationListener
+
+        LoggingApplicationListener
+        将loggingSystem注册到factory
+        loader.load过程中日志如何记录
+        DeferredLog ?
+        ====
+        ConfigDataContextRefresher
+        ====
+        EnvironmentPostProcessorApplicationListener
+
+        end note
     }
     #GoldenRod:refreshContext(context);
+    note
+    注册SpringApplicationShutdownHook
+    调用applicationContext.refresh方法
+    end note
+
     #pink:runListeners.started(context, timeTakenToStartup);
+    note right
+    end note
+
     :callRunners(context, applicationArguments);
     note
     调用以下2个runner,并且前面的优先调用

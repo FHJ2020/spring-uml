@@ -1,0 +1,44 @@
+@startwbs
+'https://plantuml.com/wbs-diagram
+
+
+* spring.factories
+** spring.boot
+***[#pink] LoggingSystemFactory
+*** PropertySourceLoader
+*** ConfigDataLocationResolver
+*** ConfigDataLoader
+***[#pink] SpringApplicationRunListener
+*** SpringBootExceptionReporter
+***[#pink] ApplicationContextInitializer
+***[#pink] ApplicationListener
+*** EnvironmentPostProcessor
+*** FailureAnalyzer
+*** FailureAnalysisReporter
+*** DatabaseInitializerDetector
+*** DependsOnDatabaseInitializationDetector
+
+** spring-boot-autoconfigure
+*** ApplicationContextInitializer
+*** ApplicationListener
+*** EnvironmentPostProcessor
+*** AutoConfigurationImportListener
+*** AutoConfigurationImportFilter
+*** EnableAutoConfiguration
+*** FailureAnalyzer
+*** TemplateAvailabilityProvider
+*** DatabaseInitializerDetector
+*** DependsOnDatabaseInitializationDetector
+
+
+** spring-boot-actuator-autoconfigure
+*** EnableAutoConfiguration
+*** ManagementContextConfiguration
+*** FailureAnalyzer
+
+
+
+
+
+
+@endwbs
