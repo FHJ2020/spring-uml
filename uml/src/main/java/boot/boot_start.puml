@@ -2,11 +2,15 @@
 'https://plantuml.com/activity-diagram-beta
 
 floating note
-spring.factories
+**spring.factories**
 配置了各种spring需要的组件
 spring-boot
 #LoggingSystemFactory 日志组件
 #PropertySourceLoader
+
+----
+**getSpringFactoriesInstances**
+从文件中获取配置的组件
 end note
 
 start
@@ -23,11 +27,7 @@ card new_springApplication #SlateGray {
 
     :getSpringFactoriesInstances(ApplicationListener.class));
     note
-    runListeners 向ApplicationListener发布事件
-    ====
-    LoggingApplicationListener
-    初始化日志系统
-
+    向SpringApplication注册ApplicationListener
     end note
 
     :deduceMainApplicationClass();
@@ -37,9 +37,13 @@ card new_springApplication #SlateGray {
 card run_springApplication #tan {
     card createBootstrapContext #skyblue{
         #GoldenRod:new DefaultBootstrapContext();
+        note
+        内部有一个独立的事件广播器SimpleApplicationEventMulticaster
+        end note
         #GoldenRod:this.bootstrapRegistryInitializers.initialize;
         note
-        往BootstrapRegistry中注册一些需要使用的bean
+        往BootstrapRegistry中注册一些需要使用的bean的supplier
+        注册CloseListener
         end note
     }
 
@@ -47,16 +51,33 @@ card run_springApplication #tan {
 
     :SpringApplicationRunListeners listeners = getRunListeners(args);
     note
-    获取事务广播器 EventPublishingRunListener
-    使用SimpleApplicationEventMulticaster发布事件
+    # 获取配置的SpringApplicationRunListener组件
+    # SpringApplicationRunListener包装成SpringApplicationRunListeners
+    # 向SpringApplicationRunListeners注册SpringApplication中的ApplicationListener
+    # **每个SpringApplicationRunListener内部都有一个独立的事件广播器 SimpleApplicationEventMulticaster**
+    SpringApplicationRunListener 实现类 EventPublishingRunListener
+    ----
+    runListeners 向ApplicationListener发布事件
+    SpringApplicationRunListeners ->  SpringApplicationRunListener -> SimpleApplicationEventMulticaster
+
     end note
 
     #pink:listeners.starting(bootstrapContext,mainApplicationClass);
+    note right
+    ApplicationStartingEvent
+    ====
+    LoggingApplicationListener
+    初始化日志系统
+    end note
 
     card createBootstrapContext #skyblue{
         :getOrCreateEnvironment();
         :configureEnvironment;
         #pink:runListeners.environmentPrepared;
+        note right
+        ApplicationEnvironmentPreparedEvent
+        ====
+        end note
         :bindToSpringApplication(environment);
     }
 
@@ -72,8 +93,23 @@ card run_springApplication #tan {
         调用ApplicationContextInitializer初始化
         ConfigurableApplicationContext
         end note
+
         #pink:runListeners.contextPrepared(context);
+        note right
+        ApplicationContextInitializedEvent
+        ====
+        123
+        end note
+
         #GoldenRod:bootstrapContext.close(context);
+        note right
+        applicationContext已经准备好了,可以进行bean注册了
+        将bootstrapContext.supplier中的bean注册到applicationContext中
+        BootstrapContextClosedEvent
+        ====
+        **ApplicationEventMulticaster**:DefaultBootstrapContext.events
+        end note
+
         :
          context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor())
         ;

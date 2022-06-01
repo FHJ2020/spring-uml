@@ -1,0 +1,94 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+top to bottom direction
+
+note as questions
+事件分两组
+initialMulticaster与context里的listerner 是否相同
+initialMulticaster赋值给context的时候是否有做特殊处理
+end note
+
+enum LivenessState implements AvailabilityState {
+	+CORRECT
+	+BROKEN
+}
+enum ReadinessState implements AvailabilityState {
+	+ ACCEPTING_TRAFFIC
+	+ REFUSING_TRAFFIC
+
+}
+
+class PayloadApplicationEvent<S> extends ApplicationEvent implements ResolvableTypeProvider
+
+
+abstract class ApplicationEvent extends EventObject
+abstract class SpringApplicationEvent extends ApplicationEvent
+
+class ApplicationFailedEvent extends SpringApplicationEvent
+
+namespace boot_initialMulticaster_multicastEvent {
+    class ApplicationStartingEvent
+    class ApplicationEnvironmentPreparedEvent
+    class ApplicationContextInitializedEvent
+    class ApplicationPreparedEvent
+
+    ApplicationStartingEvent -d[hidden]- ApplicationEnvironmentPreparedEvent
+    ApplicationEnvironmentPreparedEvent -d[hidden]- ApplicationContextInitializedEvent
+    ApplicationContextInitializedEvent -d[hidden]- ApplicationPreparedEvent
+
+}
+boot_initialMulticaster_multicastEvent -u---> SpringApplicationEvent
+
+namespace context_publishEvent {
+    class ApplicationStartedEvent extends .SpringApplicationEvent
+    class ApplicationReadyEvent extends .SpringApplicationEvent
+    class AvailabilityChangeEvent<S extends AvailabilityState> extends .PayloadApplicationEvent
+
+
+    ApplicationStartedEvent -d[hidden]- ApplicationReadyEvent
+
+}
+
+interface SpringApplicationRunListener
+EventPublishingRunListener .u..|> SpringApplicationRunListener
+class EventPublishingRunListener {
+    + void starting(ConfigurableBootstrapContext bootstrapContext)
+    + void environmentPrepared(ConfigurableBootstrapContext bootstrapContext,ConfigurableEnvironment environment)
+    + void contextPrepared(ConfigurableApplicationContext context)
+    + void contextLoaded(ConfigurableApplicationContext context)
+    ===
+    + void started(ConfigurableApplicationContext context, Duration timeTaken)
+    ApplicationStartedEvent
+    + void ready(ConfigurableApplicationContext context, Duration timeTaken)
+    + void failed(ConfigurableApplicationContext context, Throwable exception)
+}
+note right of EventPublishingRunListener
+    **initialMulticaster.multicastEvent**
+        **starting**
+        ApplicationStartingEvent
+        **environmentPrepared**
+        ApplicationEnvironmentPreparedEvent
+        **contextPrepared**
+        ApplicationContextInitializedEvent
+        **contextLoaded**
+        ApplicationPreparedEvent
+        **failed**
+        ApplicationFailedEvent
+
+    ===
+    **context.publishEvent**
+        **started**
+        ApplicationStartedEvent
+        new AvailabilityChangeEvent(ApplicationContext, LivenessState.CORRECT)
+        **ready**
+        ApplicationReadyEvent
+        new AvailabilityChangeEvent(ApplicationContext, ACCEPTING_TRAFFIC)
+        **failed**
+        ApplicationFailedEvent
+
+end note
+
+
+
+@enduml

@@ -66,27 +66,57 @@ label sp_lab21
 
 @startuml
 ' Split into 4 pages
+!define PAGE_SETTING newpage
+
+header SayHello
+footer Page %page% of %lastpage%
+
+Bob -> Alice : hello
+
+PAGE_SETTING
+
+Bob -> Mark : Hi
+PAGE_SETTING
+
+PAGE_SETTING
 
 
-class BaseClass
 
-namespace net.dummy #DDDDDD {
-    .BaseClass <|-- Person
-    Meeting o-- Person
+@enduml
 
-     Meeting -|> .BaseClass
-    .BaseClass <|- Meeting2
-    .BaseClass <|- Meeting3
-    .BaseClass <|- Meeting4
 
+@startuml
+hide circle
+hide members
+
+package " Some Foo Package " as P1 {
+    class "Foo Core" as FooCore
+    class "Foo Shell" as FooShell
+    class "Foo Config" as FooConfig
+
+    FooConfig-d[hidden]-FooShell
+    FooShell-d[hidden]-FooCore
 }
 
-namespace net.foo {
-  net.dummy.Person  <|- Person
-  .BaseClass <|-- Person
 
-  net.dummy.Meeting o-- Person
+
+package " Some Bar Package " as P2 {
+    class "Bar Core" as BarCore
+    class "Bar Shell" as BarShell
+    class "Bar Config" as BarConfig
 }
 
-BaseClass <|-- net.unused.Person
+package " www.example.local config " as P3 {
+    class " Config 1 " as Config11
+    class " Config 2 " as Config12
+}
+
+package " www.example2.local config " as P4 {
+    class " Config 1 " as Config21
+    class " Config 2 " as Config22
+}
+
+P1 --> BarCore: creates
+P2 --> Config11: creates
+P2 --> Config21: creates
 @enduml
