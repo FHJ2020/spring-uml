@@ -14,7 +14,15 @@ namespace sel4j {
         + static Logger getLogger(Class<?> clazz)
     }
     note top of LoggerFactory
-    getLogger时,会去查找实现
+    getLogger时,
+    查找LoggerFactoryBinder的实现类 StaticLoggerBinder,
+    查找class文件org/slf4j/impl/StaticLoggerBinder.class,
+    各日志框架的实现类名只能是这个,并且包名也要一致
+    如果存在多个会进行异常输出
+
+    调用 StaticLoggerBinder.getSingleton(),
+    让classLoader随机选择一个子类,如果有多个binder必须进行jar包的排除
+
     end note
 
     interface Logger
