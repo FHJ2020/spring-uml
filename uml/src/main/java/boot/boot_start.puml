@@ -136,12 +136,19 @@ card run_springApplication #tan {
     :configureIgnoreBeanInfo(environment);
 
     #GoldenRod:createApplicationContext();
+    note
+    springApplication的listeners不会注册到context中
+    但是前者的listeners处理事件的时候有可能注册
+    end note
 
     card prepareContext #skyblue{
         :context.setEnvironment(environment);
         :postProcessApplicationContext(context);
         :applyInitializers(context);
         note
+        DelegatingApplicationContextInitializer
+        ServerPortInfoApplicationContextInitializer
+        ====
         调用ApplicationContextInitializer初始化
 
         ConfigurableApplicationContext
@@ -228,14 +235,17 @@ card run_springApplication #tan {
 
     #pink:runListeners.started(context, timeTakenToStartup);
     note right
-    ApplicationStartedEvent
+    **ApplicationStartedEvent**
     ====
     StartupTimeMetricsListener
     统计
     ====
     TomcatMetricsBinder
-    ====
 
+    ----
+    **AvailabilityChangeEvent**
+    略过
+    ====
 
     end note
 
@@ -245,7 +255,31 @@ card run_springApplication #tan {
     ApplicationRunner.class
     CommandLineRunner.class
     end note
+
     #pink:runListeners.ready(context, timeTakenToReady);
+    note right
+    ApplicationReadyEvent
+    ====
+    StartupTimeMetricsListener
+    ====
+    ConditionEvaluationDeltaLoggingListener
+    ====
+    RefreshEventListener
+    ====
+    SpringApplicationAdminMXBeanRegistrar
+    ====
+    BackgroundPreinitializer
+    ====
+    RestartApplicationListener
+    ====
+
+    ----
+    **AvailabilityChangeEvent**
+    略过
+    ====
+
+    end note
+
 }
 
 

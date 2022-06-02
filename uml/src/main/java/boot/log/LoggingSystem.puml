@@ -32,6 +32,11 @@ note top of LoggingSystem
     不存在,则通过DelegatingLoggingSystemFactory
     从spring.properties中配置的多个子类中,选择在classpath中的日志系统.
     classpath下有多个日志系统,选择spring.properties中排在前面的
+    ===
+    -Dorg.springframework.boot.logging.LoggingSystem=org.springframework.boot.logging.log4j2.Log4J2LoggingSystem
+    启动参数指定loggingSystem,需要一个构造函数,参数是classLoader
+    多个日志系统如何绑定？
+
 end note
 
 abstract class AbstractLoggingSystem extends LoggingSystem

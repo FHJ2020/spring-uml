@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+note as n1
+[[https://www.slf4j.org/manual.html sel4j官网]]
+
+日志框架要实现  slf4j-api 下的接口
+
+end note
+namespace sel4j {
+
+
+    class LoggerFactory {
+        + static Logger getLogger(Class<?> clazz)
+    }
+    note top of LoggerFactory
+    getLogger时,会去查找实现
+    end note
+
+    interface Logger
+
+    interface ILoggerFactory {
+    }
+    interface LoggerFactoryBinder {
+        public ILoggerFactory getLoggerFactory();
+        public String getLoggerFactoryClassStr();
+    }
+
+    LoggerFactory -d[hidden]- ILoggerFactory
+    ILoggerFactory -d[hidden]- Logger
+    Logger -d[hidden]- LoggerFactoryBinder
+
+}
+log4j2 -[hidden]- sel4j
+sel4j -u[hidden]- logback
+
+namespace log4j2 {
+    interface LoggerContextShutdownAware
+    interface LoggerAdapter
+    abstract class AbstractLoggerAdapter implements LoggerAdapter, LoggerContextShutdownAware
+    class StaticLoggerBinder implements sel4j.LoggerFactoryBinder
+    class Log4jLoggerFactory extends AbstractLoggerAdapter implements sel4j.ILoggerFactory
+}
+
+namespace logback {
+    class LoggerContext extends ContextBase implements sel4j.ILoggerFactory, LifeCycle
+    class StaticLoggerBinder implements sel4j.LoggerFactoryBinder
+}
+
+
+@enduml
