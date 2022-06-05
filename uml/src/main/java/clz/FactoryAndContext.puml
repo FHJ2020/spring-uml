@@ -20,7 +20,6 @@ class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory impl
 
 
 interface ApplicationContext extends  ListableBeanFactory, HierarchicalBeanFactory
-interface ConfigurableApplicationContext extends ApplicationContext, Lifecycle
 abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext{
     - List<BeanFactoryPostProcessor> beanFactoryPostProcessors
 }
@@ -50,4 +49,15 @@ interface AnnotationConfigRegistry{
 	+ void register(Class<?>... componentClasses)
 	+ void scan(String... basePackages)
 }
+
+interface WebServerApplicationContext extends ApplicationContext
+interface ConfigurableApplicationContext extends ApplicationContext, Lifecycle
+interface ConfigurableWebServerApplicationContext extends ConfigurableApplicationContext, WebServerApplicationContext
+class GenericWebApplicationContext extends GenericApplicationContext implements ConfigurableWebApplicationContext, ThemeSource
+class ServletWebServerApplicationContext extends GenericWebApplicationContext implements ConfigurableWebServerApplicationContext
+class AnnotationConfigServletWebServerApplicationContext extends ServletWebServerApplicationContext implements AnnotationConfigRegistry
+
+class AnnotationConfigServletWebApplicationContext extends GenericWebApplicationContext implements AnnotationConfigRegistry
+class ReactiveWebServerApplicationContext extends GenericReactiveWebApplicationContext implements ConfigurableWebServerApplicationContext
+class AnnotationConfigReactiveWebServerApplicationContext extends ReactiveWebServerApplicationContext implements AnnotationConfigRegistry
 @enduml

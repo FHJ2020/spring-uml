@@ -2,64 +2,123 @@
 @startuml
 title BeanDefinition 类结构
 
-'子类
-namespace groupChildren{
-    abstract class AbstractBeanDefinition
-    class GenericBeanDefinition
-    note bottom of GenericBeanDefinition
-    xml定义的bean
-    end note
-    class AnnotatedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
-    class ConfigurationClassBeanDefinition extends RootBeanDefinition implements AnnotatedBeanDefinition
-    class ClassDerivedBeanDefinition extends RootBeanDefinition
-    class ChildBeanDefinition extends AbstractBeanDefinition
-    class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
-    note bottom of ScannedGenericBeanDefinition
-    @Component 定义的Bean
-    end note
 
-    class BasePackagesBeanDefinition extends GenericBeanDefinition
-    class EntityScanPackagesBeanDefinition extends GenericBeanDefinition
-    class ServletComponentRegisteringPostProcessorBeanDefinition extends GenericBeanDefinition
-    class GenericBeanDefinition extends AbstractBeanDefinition
-    note bottom of GenericBeanDefinition
-    xml 定义的Bean
-    end note
-}
+
+
+
+
+
+
 class BeanDefinitionHolder implements BeanMetadataElement{
     - BeanDefinition beanDefinition
     - String beanName
     - String[] aliases
 }
 
-interface AnnotatedBeanDefinition extends BeanDefinition
-class RootBeanDefinition {
-    - boolean postProcessed = false
-    - Object beanClass
-    - BeanDefinitionHolder decoratedDefinition
-    - Set<Member> externallyManagedConfigMembers
-    - Set<String> externallyManagedInitMethods
-    - Set<String> externallyManagedDestroyMethods
+skinparam groupInheritance 5
+namespace beanDefinitions{
+    note as n1
+    **BeanDefinition**
+    @PostConstruct解析后会被添加到 externallyManagedInitMethods
+    @PreDestroy解析后会被添加到 externallyManagedDestroyMethods
+    @Resource解析后,会被添加到 externallyManagedConfigMembers
+    MergedBeanDefinitionPostProcessor 处理后会变成true,只会merge一次
+    ====
+    **GenericBeanDefinition**
+    xml定义的bean
+    ====
+    **ScannedGenericBeanDefinition**
+    @Component 定义的Bean
+    ====
+
+    end note
+
+    ' BeanDefinition
+    interface BeanDefinition{
+        + MutablePropertyValues getPropertyValues()
+    }
+
+    interface AnnotatedBeanDefinition
+    AnnotatedBeanDefinition -u----|> BeanDefinition
+
+
+    abstract class AbstractBeanDefinition {
+        - MutablePropertyValues propertyValues
+        - MethodOverrides methodOverrides
+    }
+    AbstractBeanDefinition .u..|>BeanDefinition
+    'AbstractBeanDefinition -l[hidden]- GenericBeanDefinition
+    'AnnotatedBeanDefinition -r[hidden]- AbstractBeanDefinition
+
+
+    class RootBeanDefinition {
+        - boolean postProcessed = false
+        - Object beanClass
+        - BeanDefinitionHolder decoratedDefinition
+        - Set<Member> externallyManagedConfigMembers
+        - Set<String> externallyManagedInitMethods
+        - Set<String> externallyManagedDestroyMethods
+    }
+
+    RootBeanDefinition -u--|> AbstractBeanDefinition
+
+    class ClassDerivedBeanDefinition extends RootBeanDefinition
+    class ConfigurationClassBeanDefinition extends RootBeanDefinition implements AnnotatedBeanDefinition
+    class AnnotatedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition{
+        - AnnotationMetadata metadata
+    }
+    class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition
+    class EntityScanPackagesBeanDefinition extends GenericBeanDefinition
+    class BasePackagesBeanDefinition extends GenericBeanDefinition
+    class ServletComponentRegisteringPostProcessorBeanDefinition extends GenericBeanDefinition
+    class GenericBeanDefinition extends AbstractBeanDefinition
+    ChildBeanDefinition -u--|> AbstractBeanDefinition
+
+    class AnnotatedBeanDefinitionReader{
+        void register(Class<?>... componentClasses)
+    }
+
+    AnnotatedBeanDefinitionReader -u--> AnnotatedGenericBeanDefinition : register
+    note right on link
+    springBootApplication中的 main class
+    注册成一个spring管理的bean
+    ====
+    **AnnotationConfigUtils.registerAnnotationConfigProcessors**
+
+    scopeMetadataResolver.resolveScopeMetadata(abd)
+    AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+    AnnotationConfigUtils.applyScopedProxyMode
+    @Primary
+    @Lazy
+    end note
+
+    class ConfigurationClassBeanDefinitionReader
+
 }
-note top of RootBeanDefinition
-@PostConstruct解析后会被添加到 externallyManagedInitMethods
-@PreDestroy解析后会被添加到 externallyManagedDestroyMethods
-@Resource解析后,会被添加到 externallyManagedConfigMembers
-MergedBeanDefinitionPostProcessor 处理后会变成true,只会merge一次
-end note
-RootBeanDefinition ---|> AbstractBeanDefinition
+beanDefinitions.AbstractBeanDefinition "1" -r--> "1" properties.MutablePropertyValues
 
+'properties
+namespace properties{
+    interface  Iterable << PropertyValue >>
+    interface PropertyValues {
+        + PropertyValue getPropertyValue(String propertyName)
+        + PropertyValue[] getPropertyValues()
+    }
+    PropertyValues -u-|> Iterable
 
-interface BeanDefinition{
-    + MutablePropertyValues getPropertyValues()
+    class MutablePropertyValues {
+        - List<PropertyValue> propertyValueList
+        - Set<String> processedProperties
+        - boolean converted
+    }
+    MutablePropertyValues "1" --> "manay" PropertyValue
+    MutablePropertyValues  .u.|>  PropertyValues
+
+    class PropertyValue {
+    	- String name
+    	- Object value
+    }
 }
-
-abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition{
-    - MutablePropertyValues propertyValues
-    - MethodOverrides methodOverrides
-}
-AbstractBeanDefinition::MutablePropertyValues ---> MutablePropertyValues
-
 
 
 
@@ -70,18 +129,7 @@ class RuntimeBeanReference implements BeanReference
 interface AttributeAccessor
 abstract class AttributeAccessorSupport implements AttributeAccessor
 class BeanMetadataAttributeAccessor extends AttributeAccessorSupport implements BeanMetadataElement
-class PropertyValue extends BeanMetadataAttributeAccessor{
-	- String name
-	- Object value
-}
-class MutablePropertyValues implements PropertyValues{
-    - List<PropertyValue> propertyValueList
-    - Set<String> processedProperties
-    - boolean converted
-}
-MutablePropertyValues::propertyValueList --> PropertyValue
-interface PropertyValues
-interface  Iterable << PropertyValue >>
-PropertyValues -u-|> Iterable
+
+
 
 @enduml

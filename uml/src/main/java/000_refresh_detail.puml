@@ -2,20 +2,31 @@
 
 (*) --> refresh()
 partition refresh() {
-    -d-> prepareRefresh
-    -d-> obtainFreshBeanFactory
+    --> prepareRefresh
+    --> obtainFreshBeanFactory
     note right
+    **AbstractApplicationContext**传统的xml
     构造beanFactory
     实例化用户BeanDefinition
     实例化Spring BeanDefinition(BeanFactoryPostProcessor)
+    ==
+    **ServletWebServerApplicationContext**spring boot
+    直接返回bootStrap阶段构造的factory
     end note
     -d-> prepareBeanFactory
     note right
+    ？？？？？？？？？？？
     添加xml autowire模式下,不注入的依赖接口
     添加
     注册手动注册单例
     end note
     -d-> postProcessBeanFactory(beanFactory)
+    note right
+    beanFactory.addBeanPostProcessor(new WebApplicationContextServletContextAwareProcessor(this));
+    beanFactory.ignoreDependencyInterface(ServletContextAware.class);
+    registerWebApplicationScopes();
+    扫描beanDefinition
+    end note
     -d-> invokeBeanFactoryPostProcessors(beanFactory)
     note right
     执行步骤

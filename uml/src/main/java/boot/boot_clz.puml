@@ -63,6 +63,8 @@ namespace spring_boot #DarkGrey{
         ---
         ApplicationContextFactory applicationContextFactory = ApplicationContextFactory.DEFAULT
         ApplicationStartup applicationStartup = ApplicationStartup.DEFAULT
+        ===
+        void load(ApplicationContext context, Object[] sources)
 
     }
     note top of SpringApplication
@@ -111,9 +113,46 @@ namespace spring_boot #DarkGrey{
     调用bootstrapRegistryInitializers.initialize
     end note
 
+    class SpringApplicationRunListeners{
+        List<SpringApplicationRunListener> listeners;
+        void starting(ConfigurableBootstrapContext bootstrapContext, Class<?> mainApplicationClass)
+        environmentPrepared(ConfigurableBootstrapContext bootstrapContext, ConfigurableEnvironment environment)
+        void contextPrepared(ConfigurableApplicationContext context)
+        void contextLoaded(ConfigurableApplicationContext context)
+        void started(ConfigurableApplicationContext context, Duration timeTaken)
+        void ready(ConfigurableApplicationContext context, Duration timeTaken)
+        void failed(ConfigurableApplicationContext context, Throwable exception)
 
+    }
     interface SpringApplicationRunListener
     class EventPublishingRunListener implements SpringApplicationRunListener
+
+    class BeanDefinitionLoader{
+    	Object[] sources;
+    	AnnotatedBeanDefinitionReader annotatedReader;
+    	AbstractBeanDefinitionReader xmlReader;
+    	BeanDefinitionReader groovyReader;
+    	ClassPathBeanDefinitionScanner scanner;
+    	ResourceLoader resourceLoader;
+
+    	void load()
+    	void load(Object source)
+
+    }
+    class AnnotatedBeanDefinitionReader
+    class XmlBeanDefinitionReader
+    class GroovyBeanDefinitionReader
+    class ClassPathBeanDefinitionScanner
+
+    BeanDefinitionLoader "1" -l- "1" AnnotatedBeanDefinitionReader
+    BeanDefinitionLoader "1" -- "1" XmlBeanDefinitionReader
+    BeanDefinitionLoader "1" -- "1" GroovyBeanDefinitionReader
+    BeanDefinitionLoader "1" -- "1" ClassPathBeanDefinitionScanner
+
+    AnnotatedBeanDefinitionReader -d[hidden]- XmlBeanDefinitionReader
+    XmlBeanDefinitionReader -d[hidden]- GroovyBeanDefinitionReader
+    GroovyBeanDefinitionReader -d[hidden]- ClassPathBeanDefinitionScanner
+
 }
 
 

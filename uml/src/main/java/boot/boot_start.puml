@@ -153,9 +153,7 @@ card run_springApplication #tan {
 
         ConfigurableApplicationContext
         ====
-        ConfigurationWarningsApplicationContextInitializer
-        检测ComponentScan扫描的包是否非法
-        ====
+
         ContextIdApplicationContextInitializer
         初始化ContextId,spring.application.name
         并注册ContextId bean
@@ -174,6 +172,11 @@ card run_springApplication #tan {
         SharedMetadataReaderFactoryContextInitializer
         添加BeanFactoryPostProcessor
         CachingMetadataReaderFactoryPostProcessor
+        ====
+        ConfigurationWarningsApplicationContextInitializer
+        添加BeanFactoryPostProcessor
+        ConfigurationWarningsPostProcessor
+        检测ComponentScan扫描的包是否非法
         ====
         EnvironmentDecryptApplicationInitializer
         解密
@@ -201,8 +204,11 @@ card run_springApplication #tan {
             :new BeanDefinitionLoader(registry, sources);
             :loader.load();
             note
+            只注册beanDefinition
+            使用beanDefinitionReader注册beanDefinition
             处理sources和primarySources
             primarySources,即run方法的参数
+            注册成 AnnotatedGenericBeanDefinition
             sources什么时候有值?
             end note
         }

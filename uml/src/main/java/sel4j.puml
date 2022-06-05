@@ -20,8 +20,11 @@ namespace sel4j {
     各日志框架的实现类名只能是这个,并且包名也要一致
     如果存在多个会进行异常输出
 
-    调用 StaticLoggerBinder.getSingleton(),
-    让classLoader随机选择一个子类,如果有多个binder必须进行jar包的排除
+    调用 StaticLoggerBinder.getSingleton() 方法让classLoader随机选择一个子类,
+    如果有多个binder必须进行jar包的排除
+
+    调用LoggerFactoryBinder.getLoggerFactory()
+    获得实际的loggerFactory
 
     end note
 
