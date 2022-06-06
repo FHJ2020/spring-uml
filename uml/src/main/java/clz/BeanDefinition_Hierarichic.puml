@@ -74,11 +74,46 @@ namespace beanDefinitions{
     class GenericBeanDefinition extends AbstractBeanDefinition
     ChildBeanDefinition -u--|> AbstractBeanDefinition
 
+
+
+
+
+
+
+}
+beanDefinitions.AbstractBeanDefinition "1" -r--> "1" properties.MutablePropertyValues
+
+
+
+namespace readerAndParser{
+note bottom of readerAndParser
+**spring-boot BeanDefinitionLoader**
+AnnotatedBeanDefinitionReader annotatedReader;
+AbstractBeanDefinitionReader xmlReader;
+BeanDefinitionReader groovyReader;
+** **
+end note
+
+
+    class ConfigurationClassParser{
+        - ComponentScanAnnotationParser componentScanParser
+        - ConditionEvaluator conditionEvaluator
+        - Map<ConfigurationClass, ConfigurationClass> configurationClasses
+    }
+    note left of ConfigurationClassParser
+    @Configuration注解处理
+    end note
+    class ComponentScanAnnotationParser
+    ConfigurationClassParser -u--> ComponentScanAnnotationParser : has
+
+
+    class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader
+    class GroovyBeanDefinitionReader extends AbstractBeanDefinitionReader
     class AnnotatedBeanDefinitionReader{
         void register(Class<?>... componentClasses)
     }
 
-    AnnotatedBeanDefinitionReader -u--> AnnotatedGenericBeanDefinition : register
+    AnnotatedBeanDefinitionReader -u[#blue]--> beanDefinitions.AnnotatedGenericBeanDefinition : register
     note right on link
     springBootApplication中的 main class
     注册成一个spring管理的bean
@@ -92,10 +127,102 @@ namespace beanDefinitions{
     @Lazy
     end note
 
-    class ConfigurationClassBeanDefinitionReader
+
+
+
+    class ClassPathScanningCandidateComponentProvider{
+        # void registerDefaultFilters()
+        - List<TypeFilter> includeFilters
+        - List<TypeFilter> excludeFilters
+    }
+    note bottom of ClassPathScanningCandidateComponentProvider
+    registerDefaultFilters注册@Component作为扫描条件
+    end note
+
+    class ClassPathBeanDefinitionScanner {
+        - BeanDefinitionRegistry registry
+        - BeanDefinitionDefaults beanDefinitionDefaults
+        - String[] autowireCandidatePatterns
+        - BeanNameGenerator beanNameGenerator = AnnotationBeanNameGenerator.INSTANCE;
+        - ScopeMetadataResolver scopeMetadataResolver = new AnnotationScopeMetadataResolver
+        - boolean includeAnnotationConfig = true
+
+        # Set<BeanDefinitionHolder> doScan(String... basePackages)
+    }
+    ClassPathBeanDefinitionScanner --|> ClassPathScanningCandidateComponentProvider
+    ClassPathBeanDefinitionScanner ----> beanDefinitions.ScannedGenericBeanDefinition #skyblue
+
+    note left of ClassPathBeanDefinitionScanner
+    **xml配置属性处理**
+    解析属性 use-default-filters、resource-pattern、name-generator、
+    scope-resolver、scoped-proxy、exclude-filter、
+    include-filter、type、expression 赋值给对应的属性
+    **注解属性处理**
+    #扫描class文件,将有@Component注解的class,解析成ScannedGenericBeanDefinition
+    #解析ScannedGenericBeanDefinition中的@Scope注解,赋值给对应的属性([[./ScopeProxy.puml proxy相关处理]])
+    #AnnotationBeanNameGenerator对ScannedGenericBeanDefinition生成beanName
+    #默认值赋值处理 BeanDefinitionDefaults
+    #解析@Lazy @Primary @DependsOn @Role @Description,赋值给对应的属性
+
+    end note
+}
+'beanDefinitions -[hidden]- readerAndParser
+'readerAndParser -u- xmlParser
+
+namespace xmlParser{
+
+    interface BeanDefinitionParser{
+        BeanDefinition parse(Element element, ParserContext parserContext);
+    }
+    note top of BeanDefinitionParser
+    解析beans标签下顶级自定义namespace
+    转换成BeanDefinitionHolder注册到BeanDefinitionRegistry中
+    end note
+
+
+
+    class ComponentScanBeanDefinitionParser {
+        + BeanDefinition parse(Element element, ParserContext parserContext)
+    }
+    ComponentScanBeanDefinitionParser .d.|> BeanDefinitionParser
+    ComponentScanBeanDefinitionParser -u---> readerAndParser.ClassPathBeanDefinitionScanner : parse
+    note left of ComponentScanBeanDefinitionParser
+    **处理component-scan** 与@ComponentScan 相同的功能
+    使用@Component作为默认的扫描过滤条件(包含@Component声明的注解),
+    作为参数创建ClassPathBeanDefinitionScanner
+    默添加 annotation-config 的BeanFactoryPostProcessor(处理属性、方法、字段的注解)处理器bd
+
+    @Component @Repository @Service
+    @Controller @RestController @ControllerAdvice @Configuration
+    end note
+    class AnnotationConfigBeanDefinitionParser
+    AnnotationConfigBeanDefinitionParser .d.|> BeanDefinitionParser
+    note left of AnnotationConfigBeanDefinitionParser
+    **不解析任何注解**
+    处理annotation-config
+    注册注解处理器的BeanDefinition
+     ConfigurationClassPostProcessor
+     AutowiredAnnotationBeanPostProcessor
+     CommonAnnotationBeanPostProcessor
+     jpa注解处理器
+     EventListenerMethodProcessor
+     DefaultEventListenerFactory
+    bd.role=ROLE_INFRASTRUCTURE
+
+    @Required,
+    @Autowired,
+    @PostConstruct,
+    @PreDestroy,
+    @Resource,
+    @PersistenceContext
+    @PersistenceUnit
+
+    end note
+
+
+
 
 }
-beanDefinitions.AbstractBeanDefinition "1" -r--> "1" properties.MutablePropertyValues
 
 'properties
 namespace properties{

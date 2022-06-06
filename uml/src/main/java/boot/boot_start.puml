@@ -204,12 +204,13 @@ card run_springApplication #tan {
             :new BeanDefinitionLoader(registry, sources);
             :loader.load();
             note
-            只注册beanDefinition
+
+            从sources和primarySources中解析出beanDefinition
+            并注册到context中
             使用beanDefinitionReader注册beanDefinition
-            处理sources和primarySources
             primarySources,即run方法的参数
             注册成 AnnotatedGenericBeanDefinition
-            sources什么时候有值?
+            使用SpringApplicationBuilder对sources进行赋值
             end note
         }
         #pink:runListeners.contextLoaded(context);

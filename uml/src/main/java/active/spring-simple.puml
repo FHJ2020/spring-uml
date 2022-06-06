@@ -1,8 +1,34 @@
 @startuml
 'https://plantuml.com/activity-diagram-beta
 
+floating note
+<color:Purple> 紫色 BeanFactoryPostProcessor 子类
+<color:red> 红色 BeanPostProcessor 子类
+====
+
+end note
 start
 card "Parse BeanDefinition" #tan{
+    note
+    **beanDefinition第一次处理**
+    ----
+    AbstractRefreshableApplicationContext
+    在refreshBeanFactory()方法中解析并注册beanDefinition
+    xml完全解析
+    注解半解析
+    ----
+    GenericApplicationContext
+    不主动解析和注册beanDefinition
+    annotation子类
+    通常解析、注册beanDefinition
+    都是只处理@component注解
+    其他注解需要在以下回调方法中处理
+    #BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry
+    #BeanFactoryPostProcessor.postProcessBeanFactory
+    #MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition
+
+    end note
+
     :resolve NamespaceHandler;
     note left
     NamespaceHandlerResolver.resolve
@@ -40,14 +66,23 @@ card "Parse BeanDefinition" #tan{
 
 
 card "Parse BeanDefinition After" #tan{
+    note
+    **beanDefinition第二次解析**
+    **特点**
+    回调接口对bean进行额外处理
+    #BeanFactoryPostProcessor
+    #BeanDefinitionRegistryPostProcessor
+
+    end note
+
     :getBean BeanDefinitionRegistryPostProcessor;
-    :BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry;
+    :<color:red> BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry;
     note
     **annotation callback**
     ConfigurationClassPostProcessor
     end note
     :getBean BeanFactoryPostProcessor;
-    :BeanFactoryPostProcessor.postProcessBeanFactory;
+    :<color:red> BeanFactoryPostProcessor.postProcessBeanFactory;
     note
     **annotation callback**
     EventListenerMethodProcessor
@@ -68,7 +103,7 @@ card "getSingleton" {
 }
 
 card "Instantiation Before" #skyblue    {
-    :InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation;
+    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation;
     note
     **annotation callback**
     end note
@@ -91,18 +126,20 @@ split again
 
 endsplit
     :实例已经构造,还未调用lifecycle相关方法、未依赖注入;
-    :MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
+    :<color:Purple> MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
     note
+    **beanDefinition第三次解析**
     **default**
     ApplicationListenerDetector
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     解析注解并放入rbd.externallyManagedXXX字段中
+
     end note
     :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
     被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象
-    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference对早期引用进行拦截
+    <color:Purple> SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference对早期引用进行拦截
     ;
     note
     if (!this.singletonObjects.containsKey(beanName)) {
@@ -114,15 +151,15 @@ endsplit
 }
 
 card "Instantiation After" #skyblue {
-    :InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation;
-    :InstantiationAwareBeanPostProcessor.postProcessProperties;
+    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation;
+    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessProperties;
     note
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     将injectionMetadataCache中的依赖,注入到bean实例中,这一步会调用getBean去获取属性中的bean
     end note
-    :InstantiationAwareBeanPostProcessor.postProcessPropertyValues;
+    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessPropertyValues;
     note
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
@@ -138,7 +175,7 @@ card "Initialization Before" #tan {
     #BeanNameAware
     #BeanClassLoaderAware
     #BeanFactoryAware;
-    :BeanPostProcessor.postProcessBeforeInitialization;
+    :<color:Purple> BeanPostProcessor.postProcessBeforeInitialization;
     note
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
         **default**
@@ -165,7 +202,7 @@ card "Initialization" {
 }
 
 card "Initialization After" #tan {
-    :BeanPostProcessor.postProcessAfterInitialization;
+    :<color:Purple> BeanPostProcessor.postProcessAfterInitialization;
     note
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
         **default**

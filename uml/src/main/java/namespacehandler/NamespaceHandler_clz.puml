@@ -2,137 +2,12 @@
 
 title scaner处理类上注解,BeanFactoryPostProcessor处理属性、方法、字段注解
 
-abstract class ClassVisitor
-class ConditionEvaluator
-
-
-'BeanDefinition=============================
-abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccessor implements BeanDefinition
-class GenericBeanDefinition extends AbstractBeanDefinition
-
-interface AnnotatedBeanDefinition {
-    + AnnotationMetadata getMetadata()
-    + MethodMetadata getFactoryMethodMetadata()
-}
-
-class ScannedGenericBeanDefinition extends GenericBeanDefinition implements AnnotatedBeanDefinition{
-    - AnnotationMetadata metadata
-}
-
-
-
-namespace annotation-config-processor{
-    class ConfigurationClassPostProcessor
-    class AutowiredAnnotationBeanPostProcessor
-    class CommonAnnotationBeanPostProcessor
-    class jpa注解处理器
-    class EventListenerMethodProcessor
-    class DefaultEventListenerFactory
-}
-AnnotationConfigBeanDefinitionParser ------- "annotation-config-processor"
-
-abstract class NamespaceHandlerSupport implements NamespaceHandler
-abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilter
-class AnnotationTypeFilter extends AbstractTypeHierarchyTraversingFilter
-
-interface BeanDefinitionParser{
-    BeanDefinition parse(Element element, ParserContext parserContext);
-}
-note top
-解析beans标签下顶级自定义namespace
-转换成BeanDefinitionHolder注册到BeanDefinitionRegistry中
-end note
-
-
-class ContextNamespaceHandler extends NamespaceHandlerSupport
-note bottom of ContextNamespaceHandler
-context nameSpace处理器
-<context:component-scan annotation-config="true" />
-<context:annotation-config />
-...
-end note
-
-class ComponentScanBeanDefinitionParser implements BeanDefinitionParser{
-    + BeanDefinition parse(Element element, ParserContext parserContext)
-}
-ComponentScanBeanDefinitionParser::parse --> ClassPathBeanDefinitionScanner
-note bottom of ComponentScanBeanDefinitionParser
-**处理component-scan** 与@ComponentScan 相同的功能
-使用@Component作为默认的扫描过滤条件(包含@Component声明的注解),
-作为参数创建ClassPathBeanDefinitionScanner
-默添加 annotation-config 的BeanFactoryPostProcessor(处理属性、方法、字段的注解)处理器bd
-
-@Component @Repository @Service
-@Controller @RestController @ControllerAdvice @Configuration
-end note
-class AnnotationConfigBeanDefinitionParser implements BeanDefinitionParser
-note top of AnnotationConfigBeanDefinitionParser
-**不解析任何注解**
-处理annotation-config
-注册注解处理器的BeanDefinition
- ConfigurationClassPostProcessor
- AutowiredAnnotationBeanPostProcessor
- CommonAnnotationBeanPostProcessor
- jpa注解处理器
- EventListenerMethodProcessor
- DefaultEventListenerFactory
-bd.role=ROLE_INFRASTRUCTURE
-
-@Required,
-@Autowired,
-@PostConstruct,
-@PreDestroy,
-@Resource,
-@PersistenceContext
-@PersistenceUnit
-
-
-end note
-
-class AopNamespaceHandler extends NamespaceHandlerSupport
-class MvcNamespaceHandler extends NamespaceHandlerSupport
 
 
 
 
-
-
-class ClassPathScanningCandidateComponentProvider{
-    # void registerDefaultFilters()
-	- List<TypeFilter> includeFilters
-	- List<TypeFilter> excludeFilters
-}
-note top
-registerDefaultFilters注册@Component作为扫描条件
-end note
-
-class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateComponentProvider{
-    - BeanDefinitionRegistry registry
-    - BeanDefinitionDefaults beanDefinitionDefaults
-	- String[] autowireCandidatePatterns
-	- BeanNameGenerator beanNameGenerator = AnnotationBeanNameGenerator.INSTANCE;
-	- ScopeMetadataResolver scopeMetadataResolver = new AnnotationScopeMetadataResolver
-	- boolean includeAnnotationConfig = true
-
-    # Set<BeanDefinitionHolder> doScan(String... basePackages)
-}
-
-note bottom of ClassPathBeanDefinitionScanner
-**xml配置属性处理**
-解析属性 use-default-filters、resource-pattern、name-generator、
-scope-resolver、scoped-proxy、exclude-filter、
-include-filter、type、expression 赋值给对应的属性
-**注解属性处理**
-#扫描class文件,将有@Component注解的class,解析成ScannedGenericBeanDefinition
-#解析ScannedGenericBeanDefinition中的@Scope注解,赋值给对应的属性([[./ScopeProxy.puml proxy相关处理]])
-#AnnotationBeanNameGenerator对ScannedGenericBeanDefinition生成beanName
-#默认值赋值处理 BeanDefinitionDefaults
-#解析@Lazy @Primary @DependsOn @Role @Description,赋值给对应的属性
-
-end note
-ClassPathBeanDefinitionScanner::beanNameGenerator ------> BeanNameGenerator #red
-ClassPathBeanDefinitionScanner::scopeMetadataResolver ----> ScopeMetadataResolver #blue
-ClassPathBeanDefinitionScanner ----> ScannedGenericBeanDefinition #skyblue
+'ClassPathBeanDefinitionScanner::beanNameGenerator ------> BeanNameGenerator #red
+'ClassPathBeanDefinitionScanner::scopeMetadataResolver ----> ScopeMetadataResolver #blue
 
 '====================================scope
 enum ScopedProxyMode{
@@ -172,6 +47,27 @@ note bottom of AnnotationBeanNameGenerator
 @Component
 end note
 class FullyQualifiedAnnotationBeanNameGenerator extends AnnotationBeanNameGenerator
+
+
+
+
+abstract class NamespaceHandlerSupport implements NamespaceHandler
+abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilter
+class AnnotationTypeFilter extends AbstractTypeHierarchyTraversingFilter
+
+class ContextNamespaceHandler extends NamespaceHandlerSupport
+note bottom of ContextNamespaceHandler
+context nameSpace处理器
+<context:component-scan annotation-config="true" />
+<context:annotation-config />
+...
+end note
+
+class AopNamespaceHandler extends NamespaceHandlerSupport
+class MvcNamespaceHandler extends NamespaceHandlerSupport
+
+
+
 
 
 
