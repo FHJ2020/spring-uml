@@ -1,0 +1,42 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+    :从已注册的beanDefinition中筛选有 @Configuration 注解的;
+    card 处理 {
+
+    }
+    :处理 @Component注解;
+    :处理 @PropertySources,@PropertySource注解;
+while (新注册的beanDefinition有@Configuration注解 ?)
+    :从 @Configuration 中查找@ComponentScans注解相关的属性;
+    :根据该属性进行扫描和注册beanDefinition;
+endwhile
+    :@Configuration ;
+
+do(12)
+while
+
+:new page;
+if (Page.onSecurityCheck) then (true)
+  :Page.onInit();
+  if (isForward?) then (no)
+    :Process controls;
+    if (continue processing?) then (no)
+      stop
+    endif
+
+    if (isPost?) then (yes)
+      :Page.onPost();
+    else (no)
+      :Page.onGet();
+    endif
+    :Page.onRender();
+  endif
+else (false)
+endif
+
+
+stop
+
+@enduml

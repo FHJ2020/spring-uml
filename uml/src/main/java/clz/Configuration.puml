@@ -1,6 +1,15 @@
 @startuml
 'https://plantuml.com/class-diagram
 
-class ConfigurationClass
+class ConfigurationClass{
+	- AnnotationMetadata metadata;
+	- Resource resource;
+	- String beanName;
+	- Set<ConfigurationClass> importedBy
+	- Set<BeanMethod> beanMethods
+	- Map<String, Class<? extends BeanDefinitionReader>> importedResources
+	- Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefinitionRegistrars
+	- Set<String> skippedBeanMethods
+}
 
 @enduml

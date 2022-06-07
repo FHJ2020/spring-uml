@@ -80,19 +80,20 @@ namespace beanDefinitions{
 
 
 
+
 }
 beanDefinitions.AbstractBeanDefinition "1" -r--> "1" properties.MutablePropertyValues
 
 
 
 namespace readerAndParser{
-note bottom of readerAndParser
-**spring-boot BeanDefinitionLoader**
-AnnotatedBeanDefinitionReader annotatedReader;
-AbstractBeanDefinitionReader xmlReader;
-BeanDefinitionReader groovyReader;
-** **
-end note
+    note bottom of readerAndParser
+    **spring-boot BeanDefinitionLoader**
+    AnnotatedBeanDefinitionReader annotatedReader;
+    AbstractBeanDefinitionReader xmlReader;
+    BeanDefinitionReader groovyReader;
+    ** **
+    end note
 
 
     class ConfigurationClassParser{
@@ -102,9 +103,17 @@ end note
     }
     note left of ConfigurationClassParser
     @Configuration注解处理
+    @PropertySources
+    @PropertySource
+    @ComponentScans
+    @ComponentScan
     end note
     class ComponentScanAnnotationParser
-    ConfigurationClassParser -u--> ComponentScanAnnotationParser : has
+    note left of ComponentScanAnnotationParser
+    使用@ComponentScan解析出的属性进行扫描
+    end note
+    ComponentScanAnnotationParser -r[#blue]---> ClassPathBeanDefinitionScanner : parse beanDefinition
+    ConfigurationClassParser -u[#blue]--> ComponentScanAnnotationParser : has ComponentScanAnnotationParser
 
 
     class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader
@@ -113,7 +122,7 @@ end note
         void register(Class<?>... componentClasses)
     }
 
-    AnnotatedBeanDefinitionReader -u[#blue]--> beanDefinitions.AnnotatedGenericBeanDefinition : register
+    AnnotatedBeanDefinitionReader -u[#green]--> beanDefinitions.AnnotatedGenericBeanDefinition : register
     note right on link
     springBootApplication中的 main class
     注册成一个spring管理的bean
@@ -149,10 +158,12 @@ end note
 
         # Set<BeanDefinitionHolder> doScan(String... basePackages)
     }
-    ClassPathBeanDefinitionScanner --|> ClassPathScanningCandidateComponentProvider
+    ClassPathBeanDefinitionScanner -r-|> ClassPathScanningCandidateComponentProvider
+    'ClassPathScanningCandidateComponentProvider -l- ClassPathBeanDefinitionScanner
+
     ClassPathBeanDefinitionScanner ----> beanDefinitions.ScannedGenericBeanDefinition #skyblue
 
-    note left of ClassPathBeanDefinitionScanner
+    note bottom of ClassPathBeanDefinitionScanner
     **xml配置属性处理**
     解析属性 use-default-filters、resource-pattern、name-generator、
     scope-resolver、scoped-proxy、exclude-filter、
@@ -174,7 +185,7 @@ namespace xmlParser{
     interface BeanDefinitionParser{
         BeanDefinition parse(Element element, ParserContext parserContext);
     }
-    note top of BeanDefinitionParser
+    note left of BeanDefinitionParser
     解析beans标签下顶级自定义namespace
     转换成BeanDefinitionHolder注册到BeanDefinitionRegistry中
     end note
@@ -184,8 +195,8 @@ namespace xmlParser{
     class ComponentScanBeanDefinitionParser {
         + BeanDefinition parse(Element element, ParserContext parserContext)
     }
-    ComponentScanBeanDefinitionParser .d.|> BeanDefinitionParser
-    ComponentScanBeanDefinitionParser -u---> readerAndParser.ClassPathBeanDefinitionScanner : parse
+    ComponentScanBeanDefinitionParser .d..|> BeanDefinitionParser
+    ComponentScanBeanDefinitionParser -u[#red]-----> readerAndParser.ClassPathBeanDefinitionScanner : parse beanDefinition
     note left of ComponentScanBeanDefinitionParser
     **处理component-scan** 与@ComponentScan 相同的功能
     使用@Component作为默认的扫描过滤条件(包含@Component声明的注解),
@@ -196,7 +207,7 @@ namespace xmlParser{
     @Controller @RestController @ControllerAdvice @Configuration
     end note
     class AnnotationConfigBeanDefinitionParser
-    AnnotationConfigBeanDefinitionParser .d.|> BeanDefinitionParser
+    AnnotationConfigBeanDefinitionParser .u..|> BeanDefinitionParser
     note left of AnnotationConfigBeanDefinitionParser
     **不解析任何注解**
     处理annotation-config
@@ -220,9 +231,32 @@ namespace xmlParser{
     end note
 
 
-
-
 }
+namespace postProcesses{
+    class ConfigurationClassPostProcessor
+    ConfigurationClassPostProcessor .d..|> BeanDefinitionRegistryPostProcessor
+    ConfigurationClassPostProcessor -u[#blue]-> readerAndParser.ConfigurationClassParser : parse @Configuration
+}
+
+namespace namespaceHandlers{
+
+
+    abstract class NamespaceHandlerSupport implements NamespaceHandler
+    class ContextNamespaceHandler extends NamespaceHandlerSupport
+    note bottom of ContextNamespaceHandler
+    context nameSpace处理器
+    <context:component-scan annotation-config="true" />
+    <context:annotation-config />
+    ...
+    end note
+
+    class AopNamespaceHandler extends NamespaceHandlerSupport
+    class MvcNamespaceHandler extends NamespaceHandlerSupport
+
+
+    NamespaceHandler -r--> xmlParser.BeanDefinitionParser : 注册parser
+}
+
 
 'properties
 namespace properties{

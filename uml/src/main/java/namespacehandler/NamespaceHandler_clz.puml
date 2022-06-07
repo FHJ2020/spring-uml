@@ -51,22 +51,9 @@ class FullyQualifiedAnnotationBeanNameGenerator extends AnnotationBeanNameGenera
 
 
 
-abstract class NamespaceHandlerSupport implements NamespaceHandler
+
 abstract class AbstractTypeHierarchyTraversingFilter implements TypeFilter
 class AnnotationTypeFilter extends AbstractTypeHierarchyTraversingFilter
-
-class ContextNamespaceHandler extends NamespaceHandlerSupport
-note bottom of ContextNamespaceHandler
-context nameSpace处理器
-<context:component-scan annotation-config="true" />
-<context:annotation-config />
-...
-end note
-
-class AopNamespaceHandler extends NamespaceHandlerSupport
-class MvcNamespaceHandler extends NamespaceHandlerSupport
-
-
 
 
 

@@ -1,0 +1,15 @@
+@startyaml
+
+
+@configuration:
+    exclude : @AliasFor(annotation = EnableAutoConfiguration.class)
+    excludeName : @AliasFor(annotation = EnableAutoConfiguration.class)
+    scanBasePackages : @AliasFor(annotation = ComponentScan.class, attribute = "basePackages")
+    scanBasePackageClasses : @AliasFor(annotation = ComponentScan.class, attribute = "basePackageClasses")
+    nameGenerator : @AliasFor(annotation = ComponentScan.class, attribute = "nameGenerator")
+    proxyBeanMethods : @AliasFor(annotation = Configuration.class)
+
+
+class : DemoSpringApplication
+
+@endyaml
