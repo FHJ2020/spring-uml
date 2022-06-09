@@ -1,0 +1,22 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+    :从已注册的beanDefinition中筛选有 @Configuration 注解的;
+repeat
+    :处理 @Component注解,即成员类上的@Configuration;
+    :处理 @PropertySources,@PropertySource注解;
+    :从 @Configuration 中查找@ComponentScans注解相关的属性;
+    :根据该属性进行扫描和注册beanDefinition;
+    backward:对新注册的 beanDefinition 处理@Configuration;
+repeat while (@ComponentScan注册的beanDeifinition有@Configuration?) is(有)
+    :处理 @Import ;
+    :处理 @ImportResource ;
+    :处理 @Bean ;
+    :处理接口默认方法;
+
+
+
+stop
+
+@enduml

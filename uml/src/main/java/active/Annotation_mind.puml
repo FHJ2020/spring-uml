@@ -1,0 +1,87 @@
+@startmindmap
+'https://plantuml.com/mindmap-diagram
+
+caption figure 1
+title My super title
+
+
+* scan
+** <context:component-scan/>
+** annotation
+*** @Configuration
+*** @ComponentScan
+
+* import
+** @ImportResource
+** <import/>
+** @Import
+
+
+*[#Orange] @Configuration
+** 声明注解
+*** @Component
+
+** 绑定使用
+*** 类方法
+**** @Bean
+**** @Conditional
+*** 类上
+**** @ComponentScans
+**** @ComponentScan
+***** @Filter
+**** @PropertySources
+**** @PropertySource
+**** @ImportResource
+**** @Import
+**** @Conditional
+
+
+* <color:green> @Conditional
+** 声明在注解上
+*** @ConditionalOnBean
+*** @ConditionalOnClass
+*** @ConditionalOnMissingBean
+*** @OnWebApplicationCondition
+*** @ConditionalOnAvailableEndpoint
+
+* <color:green> @SpringBootApplication
+** @SpringBootConfiguration
+*** @Configuration
+**** @Component
+**: @EnableAutoConfiguration
+起实际作用的实际是@Import的2个类
+# <color:red>AutoConfigurationImportSelector
+从spring.factories中加载EnableAutoConfiguration配置类
+在当前配置类处理结束后再导入,deferred子类
+# <color:red>AutoConfigurationPackages.Registrar
+
+;
+*** @AutoConfigurationPackage
+**** @Import(AutoConfigurationPackages.Registrar.class)
+***[#skyblue] @Import(AutoConfigurationImportSelector.class)
+** @ComponentScan
+
+* <color:green> @ImportAutoConfiguration
+**: @Import(ImportAutoConfigurationImportSelector.class)
+会启用 ImportAutoConfigurationImportSelector;
+*** 被声明注解
+**** @AutoConfigureCache
+**** @AutoConfigureCache
+
+'分割----------------
+
+
+
+
+
+
+
+* <context:annotation-config/>
+** ConfigurationClassPostProcessor
+
+
+
+
+
+
+@endmindmap

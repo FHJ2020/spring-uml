@@ -1,0 +1,54 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+
+
+
+
+map Component {
+    <color:red>注解=>
+    @Component =>
+    <color:green>属性=>
+}
+map Configuration{
+    <color:red>注解=>
+    @Component *--> Component
+    <color:green>属性=>
+}
+map SpringBootConfiguration{
+    <color:red>注解=>
+    @Configuration *--> Configuration
+    <color:green>属性=>
+    proxyBeanMethods => @AliasFor(annotation = Configuration.class)
+}
+
+map AutoConfigurationPackage {
+    <color:red>注解=>
+    @Import => AutoConfigurationPackages.Registrar.class
+    <color:green>属性=>
+    basePackages=>
+    basePackageClasses=>
+}
+map EnableAutoConfiguration {
+    <color:red>注解=>
+    @AutoConfigurationPackage *--> AutoConfigurationPackage
+    @Import => AutoConfigurationImportSelector.class
+    <color:green>属性=>
+    basePackages=>
+    basePackageClasses=>
+}
+
+map SpringBootApplication{
+    <color:red>注解=>
+    @SpringBootConfiguration *-> SpringBootConfiguration
+    @EnableAutoConfiguration *-> EnableAutoConfiguration
+    @ComponentScan =>
+    <color:green>属性=>
+    exclude => @AliasFor(annotation = EnableAutoConfiguration.class)
+    excludeName => @AliasFor(annotation = EnableAutoConfiguration.class)
+    scanBasePackages => @AliasFor(annotation = ComponentScan.class, attribute = "basePackages")
+    scanBasePackageClasses => @AliasFor(annotation = ComponentScan.class, attribute = "basePackageClasses")
+    nameGenerator =>@AliasFor(annotation = ComponentScan.class, attribute = "nameGenerator")
+    proxyBeanMethods => @AliasFor(annotation = Configuration.class)
+}
+@enduml

@@ -1,0 +1,12 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:注册beanDefinition;
+:processor处理已注册的beanDefinition中的@Configuration注解;
+:@Configuration 上的 @ComponentScan 、 @Import;
+:@Import处理;
+
+stop
+
+@enduml

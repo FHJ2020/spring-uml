@@ -107,6 +107,7 @@ namespace readerAndParser{
     @PropertySource
     @ComponentScans
     @ComponentScan
+
     end note
     class ComponentScanAnnotationParser
     note left of ComponentScanAnnotationParser

@@ -8,6 +8,10 @@ namespace spring_core {
     end note
 }
 namespace spring_context #skyblue {
+    interface Group
+    note bottom of Group
+    AnnotationMetadata
+    end note
 
     interface ApplicationContextInitializer<C extends ConfigurableApplicationContext>{
         void initialize(C applicationContext)
@@ -28,10 +32,7 @@ namespace spring_context #skyblue {
     所有@Configuration处理后,
     @Conditional
     end note
-    interface Group
-    note bottom of Group
-    AnnotationMetadata
-    end note
+
 
     'ImportBeanDefinitionRegistrar
     interface ImportBeanDefinitionRegistrar
@@ -42,6 +43,38 @@ namespace spring_context #skyblue {
     @Configuration and ImportSelector,
     end note
     class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar
+
+    note as n1
+    ConfigurationClassParser#processImports
+    方法内部4个分支逻辑
+    # **是DeferredImportSelector子类**
+    处理Predicate,并调用handle即收集所有相关的DeferredImportSelector实现类
+    在当前的configuration处理完后,再调用 DeferredImportSelector导入
+    DeferredImportSelectorHandler封装 deferred
+    # **仅ImportSelector子类,非DeferredImportSelector子类**
+    selectImports方法返回需要处理的ImportsClass,可能
+        普通bean
+        @Configuration注解的类
+        DeferredImportSelector子类
+        ImportSelector子类
+        ImportBeanDefinitionRegistrar子类
+    再调用processImports进行处理
+    <color:red> 被导入的bean的处理和当前声明@Import一起
+    # **ImportBeanDefinitionRegistrar子类**
+    configClass添加addImportBeanDefinitionRegistrar
+    # **其他类,按照@Configuration注解方式处理**
+    ====
+    处理顺序
+    # @Configuration 处理
+    # 仅ImportSelector子类调用
+    # DeferredImportSelector子类调用
+    # ImportBeanDefinitionRegistrar子类调用
+    ====
+    @enable* @auto* 相关注解都是根据@Import上的class来起作用
+
+    end note
+    ImportBeanDefinitionRegistrar -r[#red]- n1
+    ImportSelector -l[#red]- n1
 }
 
 namespace spring_boot #DarkGrey{
@@ -97,11 +130,7 @@ namespace spring_boot #DarkGrey{
     end note
 
     interface CommandLineRunner
-    interface DeterminableImports
-    note right of DeterminableImports
-    ImportSelector 和 ImportBeanDefinitionRegistrar 的子类实现
-    可以提早确定哪些类型被导入
-    end note
+
 
 
     interface BootstrapContext
@@ -158,21 +187,68 @@ namespace spring_boot #DarkGrey{
 
 
 namespace boot_autoconfigure{
-    class AutoConfigurationImportSelector implements spring_context.DeferredImportSelector
-    note right of AutoConfigurationImportSelector
-    处理@EnableAutoConfiguration
-    end note
+        AutoConfigurationImportSelector ...|> spring_context.DeferredImportSelector
+        note right of AutoConfigurationImportSelector
+        @EnableAutoConfiguration
+        **getAutoConfigurationEntry**
+        #从 spring.factories 中读取 EnableAutoConfiguration 的配置类
+        #从 spring.factories 中读取 AutoConfigurationImportFilter 的配置类
+        #使用有@Import(ImportAutoConfigurationImportSelector.class)的注解
+        上的 ExcludedClass 过滤文件中获得的 EnableAutoConfiguration
+        #使用配置的filter对上一步结果进行进一步过滤
 
 
+        spring.factories 文件
+        org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=
+        org.springframework.boot.autoconfigure.condition.OnBeanCondition,
+        org.springframework.boot.autoconfigure.condition.OnClassCondition,
+        org.springframework.boot.autoconfigure.condition.OnWebApplicationCondition
 
-    class ImportAutoConfigurationImportSelector extends AutoConfigurationImportSelector implements spring_boot.DeterminableImports
-    note right of ImportAutoConfigurationImportSelector
-    @ImportAutoConfiguration
-    end note
+        end note
 
-    'class AutoConfigurationPackages_Registrar implements spring_context.ImportBeanDefinitionRegistrar, spring_boot.DeterminableImports
-     AutoConfigurationPackages_Registrar .u..|> spring_context.ImportBeanDefinitionRegistrar
-     AutoConfigurationPackages_Registrar .u..|> spring_boot.DeterminableImports
+
+        class ImportAutoConfigurationImportSelector extends AutoConfigurationImportSelector implements DeterminableImports{
+            AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata)
+        }
+        note bottom of ImportAutoConfigurationImportSelector
+
+        @ImportAutoConfiguration
+
+        end note
+
+        interface DeterminableImports
+        note right of DeterminableImports
+        ImportSelector 和 ImportBeanDefinitionRegistrar 的子类实现
+        可以提早确定哪些类型被导入
+        end note
+
+        'class AutoConfigurationPackages_Registrar implements spring_context.ImportBeanDefinitionRegistrar, spring_boot.DeterminableImports
+        AutoConfigurationPackages_Registrar .u..|> spring_context.ImportBeanDefinitionRegistrar
+        AutoConfigurationPackages_Registrar .u..|> DeterminableImports
+        note bottom of AutoConfigurationPackages_Registrar
+        @AutoConfigurationPackage 注解上使用@import
+
+        end note
+
+
+        '111
+        namespace conditions{
+                    interface Condition
+                    abstract class SpringBootCondition implements Condition
+                    interface ConfigurationCondition extends Condition
+                    class ProfileCondition implements Condition
+                    note bottom of ProfileCondition
+                    @Profile
+                    end note
+
+                    abstract class FilteringSpringBootCondition extends SpringBootCondition implements AutoConfigurationImportFilter
+                    class OnBeanCondition extends FilteringSpringBootCondition implements ConfigurationCondition
+                    note bottom of OnBeanCondition
+                    从
+                    end note
+                    class OnClassCondition extends FilteringSpringBootCondition
+                    class OnWebApplicationCondition extends FilteringSpringBootCondition
+        }
 
 }
 
