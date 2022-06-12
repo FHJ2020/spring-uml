@@ -81,7 +81,8 @@ card run_springApplication #tan {
     note
     # 获取配置的SpringApplicationRunListener组件
     # SpringApplicationRunListener包装成SpringApplicationRunListeners
-    # 向SpringApplicationRunListeners注册SpringApplication中的ApplicationListener
+    # 向SpringApplicationRunListeners注册SpringApplication中的ApplicationListener,
+    ApplicationListener通过实现Ordered接口来确定多个listener执行的顺序
     # **每个SpringApplicationRunListener内部都有一个独立的事件广播器 SimpleApplicationEventMulticaster**
     SpringApplicationRunListener 实现类 EventPublishingRunListener
     ----
@@ -106,28 +107,40 @@ card run_springApplication #tan {
         :getOrCreateEnvironment();
         :configureEnvironment;
         #pink:runListeners.environmentPrepared;
+
         note right
-        ApplicationEnvironmentPreparedEvent
-        ====
-        LoggingApplicationListener
+        <color:red> **ApplicationEnvironmentPreparedEvent**
+        ==<color:Purple>spring-cloud-context==
+        # BootstrapApplicationListener
+        bootstrap.properties 文件处理
+        # LoggingSystemShutdownListener
+        ==<color:green>spring-boot==
+        # EnvironmentPostProcessorApplicationListener
+        从spring.factories中获取EnvironmentPostProcessor
+        ## ConfigDataEnvironmentPostProcessor.postProcessEnvironment 属性处理
+        # AnsiOutputApplicationListener
+        # LoggingApplicationListener
         使用配置属性,配置日志系统
-        ====
-        FileEncodingApplicationListener
-        判断spring.mandatory-file-encoding与file.encoding是否相等
-        ====
-        AnsiOutputApplicationListener
-        ====
-        DelegatingApplicationListener
+        # BackgroundPreinitializer
+        启动一个线程进行预初始化,没有进行任何赋值,缓存？
+        ==nacos==
+        <color:red> ordered 优先级一致
+        **spring-cloud-starter-alibaba-nacos-discovery**
+        # NacosLoggingListener
+        **spring-cloud-starter-alibaba-nacos-config**
+        # NacosLoggingListener
+        上面2个nacos的listeners,
+        硬编码在 SpringApplicationRunListener(nacos实现)中,spring.factories并未配置
+        ==<color:green>spring-boot==
+        # DelegatingApplicationListener
         context.listener.classes 将属性中配置的监听器
         实例化,并且将事件发布给这些监听器
-        ====
-        BackgroundPreinitializer
-        启动一个线程进行预初始化,没有进行任何赋值,缓存？
-        ====
-        EnvironmentPostProcessorApplicationListener
-        从spring.factories中获取EnvironmentPostProcessor
-        ====
-        BootstrapApplicationListener
+        ==<color:Purple>spring-cloud-context==
+        # RestartListener
+        ==<color:green>spring-boot==
+        # FileEncodingApplicationListener
+        判断spring.mandatory-file-encoding与file.encoding是否相等
+
 
         end note
         :bindToSpringApplication(environment);
