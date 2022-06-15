@@ -2,18 +2,124 @@
 'https://plantuml.com/activity-diagram-beta
 
 start
-    :从已注册的beanDefinition中筛选有 @Configuration 注解的;
-repeat
-    :处理 @Component注解,即成员类上的@Configuration;
-    :处理 @PropertySources,@PropertySource注解;
-    :从 @Configuration 中查找@ComponentScans注解相关的属性;
-    :根据该属性进行扫描和注册beanDefinition;
-    backward:对新注册的 beanDefinition 处理@Configuration;
-repeat while (@ComponentScan注册的beanDeifinition有@Configuration?) is(有)
-    :处理 @Import ;
-    :处理 @ImportResource ;
-    :处理 @Bean ;
-    :处理接口默认方法;
+   :解析 SpringApplication 所在的启动类,
+    只处理component注解,注册beanDefinition;
+
+card postProcessBeanDefinitionRegistry #tan{
+    note
+    postProcessBeanDefinitionRegistry 对beanDefintion处理
+    有2个阶段
+    # ConfigurationClassParser.parser
+    解析和注册部分 beanDefinition
+    # ConfigurationClassBeanDefinitionReader.reader
+    处理parser阶段收集的数据
+
+    end note
+        :从已注册的beanDefinition中筛选有 @Configuration 注解的;
+    repeat
+        :处理 @Component注解,即成员类上的@Configuration;
+        :处理 @PropertySources,@PropertySource注解;
+        :从 @Configuration 中查找@ComponentScans注解相关的属性;
+        :根据该属性进行扫描和注册beanDefinition;
+        note
+        ComponentScanAnnotationParser
+        与xml一样,将@Compnent注解的类,注册成beanDefinition
+        其他注解不处理
+        end note
+
+        backward:对新注册的 beanDefinition 处理@Configuration;
+    repeat while (@ComponentScan注册的beanDeifinition有@Configuration?) is(有)
+
+
+    card  处理configurationClass上的@Import注解 #skyblue{
+        :查询@Import注解;
+        note
+        查询时不仅会查询类上的注解,而且会查询注解上的@Import注解
+        所有@Enable**相关的注解都是通过@Import起作用
+        end note
+
+        :对@import上的类进行处理,
+        有四个分之逻辑;
+        note
+            处理顺序
+            # @Configuration 处理
+            # 仅ImportSelector子类调用
+            # DeferredImportSelector子类调用
+            # ImportBeanDefinitionRegistrar子类调用
+        end note
+        fork
+            :
+            **DeferredImportSelector子类**
+            通过DeferredImportSelectorHandler.handle方法
+            收集所有相关的DeferredImportSelector实现类
+            实现延期处理的目的
+            在当前的configuration处理完后,
+            再调用 DeferredImportSelector导入
+            DeferredImportSelectorHandler封装 deferred;
+        fork again
+            :
+            **仅ImportSelector子类,非DeferredImportSelector子类**
+            selectImports方法返回需要处理的ImportsClass,可能
+                普通bean
+                @Configuration注解的类
+                DeferredImportSelector子类
+                ImportSelector子类
+                ImportBeanDefinitionRegistrar子类
+            再调用processImports进行处理
+            <color:red> 被导入的bean的处理和当前声明@Import一起
+            ;
+        fork again
+            :
+            **ImportBeanDefinitionRegistrar子类**
+            configClass添加addImportBeanDefinitionRegistrar
+
+            ;
+        fork again
+            :
+            **其他类,按照@Configuration注解方式处理**
+            如果被导入的类上是@Configuration注解
+            该类的beanDefinition不会被注册,只是转成configClass,收集起来
+            ;
+
+        end fork
+
+    }
+
+    card 处理configurationClass上的@ImportResource注解 #Teal{
+        :只是将importResource的数据收集起来,放入configClass中;
+
+    }
+    card 处理configurationClass内部的@Bean注解{
+        :只是将MethodMetadata数据收集起来,放入configClass中;
+
+    }
+    card loadBeanDefinitions #Wheat{
+     repeat
+
+        :
+        将@Import导入的cofigClass注册beanDeifintion
+        beanDefinition类型 AnnotatedGenericBeanDefinition
+        ;
+
+        :
+        将configClass关联的beanMethod(@Bean方法)注册
+        beanDefinition类型 ConfigurationClassBeanDefinition
+        ;
+
+        :
+        将configClass关联的importedResources(@ImportResource)注册
+        使用XmlBeanDefinitionReader将xml中的beanDefinition注册
+        ;
+
+        :
+        调用@import方式导入的registrar.registerBeanDefinitions方法
+        注册beanDefinition
+        ;
+
+        backward:新注册的configClass继续loadBeanDefinition ;
+        repeat while(新注册的beanDefinition中是否有@Configuration)
+    }
+}
 
 
 

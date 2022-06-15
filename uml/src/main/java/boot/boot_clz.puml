@@ -192,6 +192,7 @@ namespace boot_autoconfigure{
         @EnableAutoConfiguration
         **getAutoConfigurationEntry**
         #从 spring.factories 中读取 EnableAutoConfiguration 的配置类
+        #从 spring.factories 中读取 AutoConfiguration 的配置类,2.7
         #从 spring.factories 中读取 AutoConfigurationImportFilter 的配置类
         #使用有@Import(ImportAutoConfigurationImportSelector.class)的注解
         上的 ExcludedClass 过滤文件中获得的 EnableAutoConfiguration
