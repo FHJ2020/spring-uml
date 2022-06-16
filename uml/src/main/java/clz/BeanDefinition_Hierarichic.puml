@@ -107,7 +107,6 @@ namespace readerAndParser{
     @PropertySource
     @ComponentScans
     @ComponentScan
-
     end note
     class ComponentScanAnnotationParser
     note left of ComponentScanAnnotationParser
@@ -115,6 +114,9 @@ namespace readerAndParser{
     end note
     ComponentScanAnnotationParser -r[#blue]---> ClassPathBeanDefinitionScanner : parse beanDefinition
     ConfigurationClassParser -u[#blue]--> ComponentScanAnnotationParser : has ComponentScanAnnotationParser
+
+    class ConfigurationClassBeanDefinitionReader
+    ConfigurationClassBeanDefinitionReader -u[#green]--> beanDefinitions.ConfigurationClassBeanDefinition : register@Bean
 
 
     class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader
@@ -216,7 +218,7 @@ namespace xmlParser{
      ConfigurationClassPostProcessor
      AutowiredAnnotationBeanPostProcessor
      CommonAnnotationBeanPostProcessor
-     jpa注解处理器
+     jpa注解处理器z
      EventListenerMethodProcessor
      DefaultEventListenerFactory
     bd.role=ROLE_INFRASTRUCTURE
@@ -237,6 +239,7 @@ namespace postProcesses{
     class ConfigurationClassPostProcessor
     ConfigurationClassPostProcessor .d..|> BeanDefinitionRegistryPostProcessor
     ConfigurationClassPostProcessor -u[#blue]-> readerAndParser.ConfigurationClassParser : parse @Configuration
+    ConfigurationClassPostProcessor -u[#blue]-> readerAndParser.ConfigurationClassBeanDefinitionReader : load beanDefinition
 }
 
 namespace namespaceHandlers{

@@ -1,0 +1,85 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+    note
+    postProcessBeanFactory
+    对@Configuration注解的beanDefinition增强
+    即对proxyMode进行处理,也就是下面两种模式
+    # proxyMode=true
+    ConfigurationClassUtils#CONFIGURATION_CLASS_FULL
+    # proxyMode=false
+    ConfigurationClassUtils#CONFIGURATION_CLASS_LITE
+    **full**
+    对@Configuration注解的类使用cglib代理
+    将直接调用@Bean方法,变成和@autowired、factory.getBean一样的逻辑
+    如果bean不存在,则通过该方法返回实例,并使用post回调接口进行处理
+    单例模式会对bean缓存
+    **lite**
+    将直接调用@Bean方法,直接返回一个新的bean对象,也不会进行Post回调处理
+    end note
+
+    :postProcessBeanFactory;
+
+    fork
+        :
+        @Configuration
+        <color:red> CONFIGURATION_CLASS_FULL
+        proxyMode=true
+        ;
+        :解析beanClass
+        ;
+        note
+        AbstractBeanDefinition#beanClass 为Object类型
+        原始configClass的BeanDefinition中设置的是字符串类名
+        将字符串类名转成class类
+        后续需要cglib代理的类
+
+        end note
+
+        :
+        使用ConfigurationClassEnhancer增强config类
+        即使用cglib生成子类对使用拦截器对@bean方法进行代理
+        ;
+        note
+        使用cglib2个拦截器
+        **BeanFactoryAwareMethodInterceptor**
+        代理类实现 EnhancedConfiguration 接口
+        设置beanFactory
+        ====
+        **BeanMethodInterceptor**
+        @Bean上无@Scope
+        factory调用Configuration类的@Bean方法获得实例,
+        并进行post回调处理,单例还会缓存
+        ----
+        @Bean上有@Scope
+        # 使用ScopedProxyFactoryBean对beanMethod返回的class进行代理,即创建代理类
+        被代理类还是由@Bean方法返回,即调用config实例的方法(full或者Lite)
+        # 对getObject方法拦截,从beanFactory中返回bean，beanFactory.getBean(beanName)
+        如果本生是FactoryBean,则会继续增强
+        end note
+
+    fork again
+        :@Bean;
+        :解析beanClass;
+
+    fork again
+        :
+        @Configuration
+        <color:red> CONFIGURATION_CLASS_LITE
+        proxyMode=false
+        ;
+
+        :
+        有beanMethod则对其进行
+        解析beanClass
+        ;
+
+    end fork
+
+
+
+stop
+
+@enduml

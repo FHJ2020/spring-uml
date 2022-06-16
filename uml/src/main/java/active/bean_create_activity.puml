@@ -1,0 +1,52 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:bean创建;
+
+fork
+    :有参构造函数;
+fork again
+    :无参构造函数;
+fork again
+    :post回调方式拦截;
+fork again
+    :工厂方式;
+    note
+    AbstractBeanDefinition#factoryBeanName
+    AbstractBeanDefinition#factoryMethodName
+    end note
+
+    fork
+        fork
+            :@Bean;
+        fork again
+            :static @Bean;
+        end fork
+
+        fork
+            fork
+                :scope代理;
+            fork again
+                :aop代理;
+            end fork
+        end fork
+
+    fork again
+        :xml factoryMethod;
+    fork again
+        :ObjectFactory;
+    fork again
+        :FactoryBean;
+    end fork
+
+fork again
+    :scope代理;
+fork again
+    :aop代理;
+
+end fork
+
+stop
+
+@enduml

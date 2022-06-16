@@ -39,7 +39,7 @@ start
             :查询@Import注解;
             note
             查询时不仅会查询类上的注解,而且会查询注解上的@Import注解
-            所有@Enable**相关的注解都是通过@Import起作用
+            <color:red> **所有@EnableXX相关的注解都是通过@Import起作用**
             end note
 
             :对@import上的类进行处理,
@@ -92,7 +92,7 @@ start
         card 处理configurationClass上的@ImportResource注解 #Teal{
             :只是将importResource的数据收集起来,放入configClass中;
         }
-        card 处理configurationClass内部的@Bean注解{
+        card 处理configurationClass内部的@Bean注解 {
             :只是将MethodMetadata数据收集起来,放入configClass中;
 
         }
@@ -100,6 +100,7 @@ start
 
     :configClass parser处理结束
     调用deferredImportSelectorHandler.process()
+    DeferredImportSelector
     导入beanDefinition
     ;
 
@@ -111,9 +112,13 @@ start
         ;
 
         :
-        将configClass关联的beanMethod(@Bean方法)注册
+        将configClass关联的beanMethod(<color:red>@Bean方法)注册
         beanDefinition类型 ConfigurationClassBeanDefinition
         ;
+        note
+        如果有scope代理则对其进行包装 ScopedProxyFactoryBean
+        和xml 一样
+        end note
 
         :
         将configClass关联的importedResources(@ImportResource)注册

@@ -34,7 +34,15 @@ title My super title
 **** @ImportResource
 **** @Import
 **** @Conditional
+**:
+<color:red> 2个功能
+# 注解类是一个工厂,@Bean方法,即工厂方法,返回bean
+注解类本生是一个spring bean,
+spring通过反射的方式调用工厂上的方法,返回@Bean方法的实例
+并放入singleObject缓存中
 
+# 和其他注解配合使用,注册beanDefinition
+;
 
 * <color:green> @Conditional
 ** 声明在注解上
