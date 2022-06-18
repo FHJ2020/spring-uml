@@ -1,0 +1,231 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+namespace springPosts{
+    interface BeanFactoryPostProcessor
+
+
+    interface BeanPostProcessor
+    interface MergedBeanDefinitionPostProcessor
+    MergedBeanDefinitionPostProcessor -r-|> BeanPostProcessor
+
+    interface InstantiationAwareBeanPostProcessor
+    InstantiationAwareBeanPostProcessor -u-|> BeanPostProcessor
+    interface SmartInstantiationAwareBeanPostProcessor
+    SmartInstantiationAwareBeanPostProcessor -u-|> InstantiationAwareBeanPostProcessor
+
+    abstract class InstantiationAwareBeanPostProcessorAdapter
+    InstantiationAwareBeanPostProcessorAdapter .u.|> SmartInstantiationAwareBeanPostProcessor
+
+    abstract class AbstractAnnotationBeanPostProcessor
+    AbstractAnnotationBeanPostProcessor -u--|> InstantiationAwareBeanPostProcessorAdapter
+    AbstractAnnotationBeanPostProcessor .u..|>  MergedBeanDefinitionPostProcessor
+
+    interface BeanDefinitionRegistryPostProcessor
+    BeanDefinitionRegistryPostProcessor -r--|> BeanFactoryPostProcessor
+    AbstractAnnotationBeanPostProcessor --r[hidden]- BeanFactoryPostProcessor
+
+}
+
+namespace dubboContext {
+    interface ExtensionAccessor
+    class ExtensionDirector implements ExtensionAccessor
+    abstract class ScopeModel implements ExtensionAccessor
+
+    class FrameworkModel extends ScopeModel
+    class ApplicationModel extends ScopeModel
+
+
+    interface ScopeModelAccessor
+    interface ExtensionPostProcessor
+    class ScopeModelAwareExtensionProcessor implements ExtensionPostProcessor, ScopeModelAccessor
+
+
+    class ScopeBeanFactory
+
+    class FrameworkServiceRepository
+    class ExtensionLoader<T>
+    class DubboSpringInitContext
+
+}
+
+
+' dubboService @dubboService
+namespace dubboService {
+    abstract class AbstractConfig
+    abstract class AbstractMethodConfig extends AbstractConfig
+    abstract class AbstractInterfaceConfig extends AbstractMethodConfig
+    abstract class AbstractServiceConfig extends AbstractInterfaceConfig
+    abstract class ServiceConfigBase<T> extends AbstractServiceConfig
+    class ServiceConfig<T> extends ServiceConfigBase
+    class ServiceBean<T> extends ServiceConfig
+    note right of ServiceBean
+    @DubboService 注解beanDefinition的beanClass
+    end note
+}
+
+
+' dubboReference @DubboReference
+namespace dubboReference {
+    interface FactoryBean<T>
+    class ReferenceBean<T> {
+        - ReferenceConfig referenceConfig
+        + void afterPropertiesSet()
+        - void createLazyProxy()
+    }
+    ReferenceBean -d--> FactoryBean
+    note right of ReferenceBean
+    ReferenceBean实例创建后,设置proxy创建需要的信息,并将实例保存到ReferenceBeanManager中
+    ReferenceBean#afterPropertiesSet
+    ===
+    使用代理方式创建provider接口的子类
+    ReferenceBean#createLazyProxy
+    ===
+    referenceConfig实际逻辑的封装
+    ===
+    # ReferenceBean#createLazyProxy 使用spring封装的jdk动态代理创建代理对象,并不实际创建dubbo代理对象
+    # 调用spring封装的JdkDynamicAopProxy#invoke时,即接口方法调用时,触发获取dubbo代理对象
+    # DubboReferenceLazyInitTargetSource#createObject创建dubbo内部的代理对象
+    # dubbo内部拦截器InvokerInvocationHandler#invoke调用远程的服务化方法
+    end note
+
+    interface ProviderInterface
+    interface EchoService
+    interface Destroyable
+    class ReferenceBeanProxy
+    ProviderInterface <|... ReferenceBeanProxy
+    EchoService <|... ReferenceBeanProxy
+    Destroyable <|... ReferenceBeanProxy
+
+    interface TargetSource
+    abstract class AbstractLazyCreationTargetSource
+    class DubboReferenceLazyInitTargetSource {
+        + Object createObject()
+    }
+    TargetSource <|... AbstractLazyCreationTargetSource
+    AbstractLazyCreationTargetSource <|--- DubboReferenceLazyInitTargetSource
+
+
+
+    class JdkDynamicAopProxy implements  InvocationHandler
+
+    ReferenceBeanProxy --> JdkDynamicAopProxy : 1.调用invoke
+    JdkDynamicAopProxy --> DubboReferenceLazyInitTargetSource : 2.创建或返回代理对象
+    ReferenceBean <-u- DubboReferenceLazyInitTargetSource : 3 referenceConfig.get() 创建doubbo代理对象
+
+
+}
+
+
+
+
+' dubboPosts
+namespace dubboPosts{
+
+    class ReferenceAnnotationBeanPostProcessor {
+        + void postProcessBeanFactory
+        + void postProcessMergedBeanDefinition
+        ===
+        + void postProcessMergedBeanDefinition
+        + PropertyValues postProcessPropertyValues
+        --
+        - ConcurrentMap<InjectionMetadata.InjectedElement, String> injectedFieldReferenceBeanCache
+        - ConcurrentMap<InjectionMetadata.InjectedElement, String> injectedMethodReferenceBeanCache
+    }
+    ReferenceAnnotationBeanPostProcessor -u--|> springPosts.AbstractAnnotationBeanPostProcessor
+    ReferenceAnnotationBeanPostProcessor .u...|> springPosts.BeanFactoryPostProcessor
+
+
+    class DubboInfraBeanRegisterPostProcessor
+    DubboInfraBeanRegisterPostProcessor .d....|> springPosts.BeanDefinitionRegistryPostProcessor
+
+    class ServiceAnnotationPostProcessor
+    ServiceAnnotationPostProcessor ...|> springPosts.BeanDefinitionRegistryPostProcessor
+
+    DubboInfraBeanRegisterPostProcessor -l[hidden]-- ServiceAnnotationPostProcessor
+
+}
+
+
+' dubboServiceAnnotation note
+note as dubboServiceAnnotation
+    postProcessBeanDefinitionRegistry
+end note
+
+dubboPosts.ServiceAnnotationPostProcessor -l-> dubboServiceAnnotation
+dubboService.ServiceBean ---> dubboServiceAnnotation
+
+
+' dubboReferenceAnnotation note
+note as dubboReferenceAnnotation
+== beanDefinition 解析阶段 ==
+**postProcessBeanFactory**
+
+-- **功能1**  @DubboRferennce注解在字段、方法上注入provider形式,provider接口beanDefinition的创建过程 --
+# 从所有已注册的beanDefinition收集字段、方法上的@DubboRferennce注解,进行缓存并注册
+## injectedFieldReferenceBeanCache字段缓存缓存
+## injectedMethodReferenceBeanCache方法注入缓存
+# 根据字段或方法上的@DubboRferennce注解信息,注册一个beanDefinition,其beanClass为ReferenceBean
+以factoryBean方式返回一个@DubboReferecn注解的实例
+一个接口一个factoryBean
+注入同一个接口,但是配置相同则只会有一个factoryBean
+同一个接口配置相同则共用一个factoryBean,即返回同一个代理对象
+注册到spring中bean的name默认为字段名,即不指定@DubboReferenc的id属性
+dubbo通过group、version等属性生成一个dubbo key 以对应spring中多个beanName(一个provider接口,除了id外,其他属性都一致)
+**referenceBeanManager** 中保存了spring中的beanName和dubbo的reference的映射
+
+-- **功能2** @Configuration方式声明@DubboReference,并以@Autowire方式注入provider --
+对ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry注册的@Bean beandefinition
+进行进一步处理,处理@Bean上的@DubboReference注解
+# 校验接口定义是否正确
+# 注解属性解析设置到 beanDefinition的propertyValues、attributes 字段中
+ReferenceBean#afterPropertiesSet解析attributes数据,以协助创造proxy
+
+
+判断beanDefinition的工厂接口返回类型是否ReferenceBean,来筛选@DubboReference注解的接口
+通过解析方法上的泛型确定beanClass
+
+== bean 创建阶段 ==
+**postProcessMergedBeanDefinition**
+
+end note
+
+dubboPosts.ReferenceAnnotationBeanPostProcessor -d--- dubboReferenceAnnotation
+dubboReferenceAnnotation  ---- dubboReference.ReferenceBean : @DubboReference的FactoryBean
+
+' regstart
+namespace dubboRegistrar{
+    class DubboConfigConfigurationRegistrar implements ImportBeanDefinitionRegistrar
+}
+
+
+
+namespace dubboRegsterBeanDefinitions{
+   class DubboSpringInitContext
+   class ApplicationModel
+   class ModuleModel
+   class ServicePackagesHolder
+   class ReferenceBeanManager
+   class DubboConfigAliasPostProcessor
+   class DubboDeployApplicationListener
+   class DubboConfigApplicationListener
+   class DubboConfigDefaultPropertyValueBeanPostProcessor
+   class DubboConfigBeanInitializer
+
+   DubboSpringInitContext -d[hidden]- ApplicationModel
+   ApplicationModel -d[hidden]- ModuleModel
+   ModuleModel -d[hidden]- ServicePackagesHolder
+   ServicePackagesHolder -d[hidden]- ReferenceBeanManager
+   ReferenceBeanManager -d[hidden]- DubboConfigAliasPostProcessor
+   DubboConfigAliasPostProcessor -d[hidden]- DubboDeployApplicationListener
+   DubboDeployApplicationListener -d[hidden]- DubboConfigApplicationListener
+   DubboConfigApplicationListener -d[hidden]- DubboConfigDefaultPropertyValueBeanPostProcessor
+   DubboConfigDefaultPropertyValueBeanPostProcessor -d[hidden]- DubboConfigBeanInitializer
+}
+
+circle dubboRegistrarLink
+dubboRegistrar.DubboConfigConfigurationRegistrar --- dubboRegistrarLink : register
+dubboRegistrarLink -[#blue]-- dubboPosts
+dubboRegistrarLink -[#blue]---- dubboRegsterBeanDefinitions
+
+@enduml

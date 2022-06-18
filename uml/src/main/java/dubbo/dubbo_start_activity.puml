@@ -1,0 +1,31 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+    :DubboApplicationContextInitializer;
+    note
+    已注释掉
+    end note
+
+    :DubboDefaultPropertiesEnvironmentPostProcessor;
+
+    :EnableAutoConfiguration;
+
+fork
+    :DubboAutoConfiguration;
+    :@EnableDubboConfig
+    @Import(DubboConfigConfigurationRegistrar.class)
+    ;
+
+
+
+fork again
+    :DubboRelaxedBindingAutoConfiguration;
+fork again
+    :DubboListenerAutoConfiguration;
+
+end fork
+
+stop
+
+@enduml

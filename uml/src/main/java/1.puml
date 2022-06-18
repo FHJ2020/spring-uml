@@ -2,11 +2,13 @@
 'https://plantuml.com/sequence-diagram
 
 
-abstract class AbstractApplicationContext{
-    -Set<ApplicationListener<?>> earlyApplicationListeners
-    -Set<ApplicationListener<?>> applicationListeners
-    -Set<ApplicationEvent> earlyApplicationEvents
-}
+class a1
+class a2
+class a3
+
+'a1 --|> a2
+a2 <|-r-- a1
+
 
 
 @enduml
