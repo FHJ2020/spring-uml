@@ -8,64 +8,74 @@ floating note
 
 end note
 start
-card "Parse BeanDefinition" #tan{
-    note
-    **beanDefinition第一次处理**
-    ----
-    AbstractRefreshableApplicationContext
-    在refreshBeanFactory()方法中解析并注册beanDefinition
-    xml完全解析
-    注解半解析
-    ----
-    GenericApplicationContext
-    不主动解析和注册beanDefinition
-    annotation子类
-    通常解析、注册beanDefinition
-    都是只处理@component注解
-    其他注解需要在以下回调方法中处理
-    #BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry
-    #BeanFactoryPostProcessor.postProcessBeanFactory
-    #MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition
 
-    end note
 
-    :resolve NamespaceHandler;
-    note left
-    NamespaceHandlerResolver.resolve
-    handler默认定义位置 META-INF/spring.handlers
-    NamespaceHandler
-    NamespaceHandlerSupport
-    #ContextNamespaceHandler
-    #AopNamespaceHandler
-    end note
-    :handler.init
-    #registerBeanDefinitionParser
-        parser会注册postProcessors
-    #registerBeanDefinitionDecorator
-    ;
-    :handler.parse
-    #get BeanDefinitionParser
-    #BeanDefinitionParser.parse
-    #generate BeanDefinition;
-    note
-    **xml方式**
-    bean中的所有属性被解析成PropertyValue,被添加到propertyValues字段中
-    end note
+'BeanDefinition解析与注册
+split
+    card "传统xml方式启动,BeanDefinition解析与注册" #tan{
+        note
+        **beanDefinition第一次处理**
+        ----
+        AbstractRefreshableApplicationContext
+        在refreshBeanFactory()方法中解析并注册beanDefinition
+        xml完全解析
+        注解半解析
+        ----
+        GenericApplicationContext
+        不主动解析和注册beanDefinition
+        annotation子类
+        通常解析、注册beanDefinition
+        都是只处理@component注解
+        其他注解需要在以下回调方法中处理
+        #BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry
+        #BeanFactoryPostProcessor.postProcessBeanFactory
+        #MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition
 
-    :register PostProcessors BeanDefinition;
-    note
-    **default NamespaceHandler register PostProcessors**
+        end note
 
-    **aop NamespaceHandler register PostProcessors**
-    AspectJAwareAdvisorAutoProxyCreator
 
-    end note
+        :resolve NamespaceHandler;
+        note left
+        NamespaceHandlerResolver.resolve
+        handler默认定义位置 META-INF/spring.handlers
+        NamespaceHandler
+        NamespaceHandlerSupport
+        #ContextNamespaceHandler
+        #AopNamespaceHandler
+        end note
+        :handler.init
+        #registerBeanDefinitionParser
+            parser会注册postProcessors
+        #registerBeanDefinitionDecorator
+        ;
+        :handler.parse
+        #get BeanDefinitionParser
+        #BeanDefinitionParser.parse
+        #generate BeanDefinition;
+        note
+        **xml方式**
+        bean中的所有属性被解析成PropertyValue,被添加到propertyValues字段中
+        end note
 
-    :register BeanDefinition;
+        :register PostProcessors BeanDefinition;
+        note
+        **default NamespaceHandler register PostProcessors**
+
+        **aop NamespaceHandler register PostProcessors**
+        AspectJAwareAdvisorAutoProxyCreator
+
+        end note
+
+        :register BeanDefinition;
+    }
+
+split again
+card 注解方式,springBoot {
+
 }
+end split
 
-
-card "Parse BeanDefinition After" #tan{
+card "BeanDefinition回调处理" #tan{
     note
     **beanDefinition第二次解析**
     **特点**
@@ -76,17 +86,67 @@ card "Parse BeanDefinition After" #tan{
     end note
 
     :getBean BeanDefinitionRegistryPostProcessor;
-    :<color:red> BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry;
-    note
+    :<color:red> BeanDefinitionRegistryPostProcessor#postProcessBeanDefinitionRegistry;
+    note left
     **annotation callback**
     ConfigurationClassPostProcessor
     end note
+    note right
+    == dubbo ==
+    可以用aware接口实现
+    -- **DubboConfigAliasPostProcessor** --
+    保存registry
+    -- **DubboInfraBeanRegisterPostProcessor** --
+    保存registry
+
+
+    end note
+
     :getBean BeanFactoryPostProcessor;
-    :<color:red> BeanFactoryPostProcessor.postProcessBeanFactory;
-    note
+
+    :<color:red> BeanFactoryPostProcessor#postProcessBeanFactory;
+    note left
     **annotation callback**
     EventListenerMethodProcessor
     end note
+    note right
+    == dubbo ==
+    -- **ReferenceAnnotationBeanPostProcessor** --
+    -- @DubboRferennce注解在字段、方法上注入provider形式,provider接口beanDefinition的创建过程 --
+    # 从所有已注册的beanDefinition,收集注解信息,缓存到 injectionMetadataCache
+    # 从所有已注册的beanDefinition收集字段、方法上的@DubboRferennce注解,进行缓存并注册@DubboRferennce相关的beanDefinition
+    ## injectedFieldReferenceBeanCache字段缓存缓存
+    ## injectedMethodReferenceBeanCache方法注入缓存
+    # 根据字段或方法上的@DubboRferennce注解信息,注册一个beanDefinition,其beanClass为ReferenceBean
+    以factoryBean方式返回一个@DubboReferecn注解的实例
+    一个provider接口一个factoryBean(ReferenceBean)
+    注入同一个接口,但是配置相同则只会有一个factoryBean
+    同一个接口配置相同则共用一个factoryBean,即返回同一个代理对象
+    @DubboReferenc的id属性指定注册到spring中的beanName,若不指定默认为字段名
+    多个id属性一样则表示一个代理对象
+    dubbo通过group、version等属性生成一个dubbo key 以对应spring中多个beanName(一个provider接口,除了id外,其他属性都一致)
+    **referenceBeanManager** 中保存了spring中的beanName和dubbo的reference的映射
+
+    -- @Configuration方式声明@DubboReference,并以@Autowire方式注入provider --
+    对ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry注册的@Bean beandefinition
+    进行进一步处理,处理@Bean上的@DubboReference注解
+    # 校验接口定义是否正确
+    # 注解属性解析设置到 beanDefinition的propertyValues、attributes 字段中
+    ReferenceBean#afterPropertiesSet解析attributes数据,以协助创造proxy
+    FactoryBean通过方法返回类型来确定beanClass
+
+    判断beanDefinition的工厂接口返回类型是否ReferenceBean,来筛选@DubboReference注解的接口
+    通过解析方法上的泛型确定beanClass
+
+    -- **DubboInfraBeanRegisterPostProcessor** --
+    <color:red> todo
+    注册一些bean、初始化dubbo相关bean
+    -- **ServiceAnnotationPostProcessor** --
+
+
+    end note
+
+
 
     :SmartInitializingSingleton.afterSingletonsInstantiated;
     note
@@ -103,7 +163,7 @@ card "getSingleton" {
 }
 
 card "Instantiation Before" #skyblue    {
-    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation;
+    :<color:Purple> InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation;
     note
     **annotation callback**
     end note
@@ -111,23 +171,25 @@ card "Instantiation Before" #skyblue    {
 }
 
 card "Instantiation"{
-split
-    :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
-    对构造函数进行拦截
-    ;
-    note
-    **annotation callback**
-    AutowiredAnnotationBeanPostProcessor
-    end note
-split again
-    :instanceSupplier;
-split again
-    :FactoryMethod;
+    split
+        :SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
+        对构造函数进行拦截
+        ;
+        note
+        **annotation callback**
+        AutowiredAnnotationBeanPostProcessor
+        end note
+    split again
+        :instanceSupplier;
+    split again
+        :FactoryMethod;
 
-endsplit
+    endsplit
+
     :实例已经构造,还未调用lifecycle相关方法、未依赖注入;
-    :<color:Purple> MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition;
-    note
+
+    :<color:Purple> MergedBeanDefinitionPostProcessor#postProcessMergedBeanDefinition;
+    note left
     **beanDefinition第三次解析**
     **default**
     ApplicationListenerDetector
@@ -137,6 +199,14 @@ endsplit
     解析注解并放入rbd.externallyManagedXXX字段中
 
     end note
+    note right
+    == dubbo ==
+    -- **ReferenceAnnotationBeanPostProcessor** --
+    # 设置xml、@DubboReference方式创建的beanDefinition的propertyValue.optional=true
+    # 对postProcessBeanFactory阶段收集的注入字段,放入externallyManagedConfigMembers中
+    # 对当前bean中的注入字段和方法检查,是否需要注册ReferenceBean,同postProcessBeanFactory阶段的注册逻辑
+    end note
+
     :添加一个 ObjectFactory 使用回调处理循环引用,无回调默认返回当前对象,不完整的bean对象
     被依赖对象通过 getSingleton方法调用 ObjectFactory 获得不完整bean对象
     <color:Purple> SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference对早期引用进行拦截
@@ -151,20 +221,38 @@ endsplit
 }
 
 card "Instantiation After" #skyblue {
-    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation;
-    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessProperties;
+    :<color:Purple> InstantiationAwareBeanPostProcessor#postProcessAfterInstantiation;
+    note left
+    end note
+    note right
+    == dubbo ==
+    -- **DubboConfigAliasPostProcessor** --
+    AbstractConfig使用id相registry注册别名
+    end note
+
+    :<color:Purple> InstantiationAwareBeanPostProcessor#postProcessProperties;
     note
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     将injectionMetadataCache中的依赖,注入到bean实例中,这一步会调用getBean去获取属性中的bean
     end note
-    :<color:Purple> InstantiationAwareBeanPostProcessor.postProcessPropertyValues;
-    note
+
+    :<color:Purple> InstantiationAwareBeanPostProcessor#postProcessPropertyValues;
+    note left
+    @Deprecated标记
+    推荐postProcessProperties
     **annotation callback**
     AutowiredAnnotationBeanPostProcessor
     CommonAnnotationBeanPostProcessor
     end note
+    note right
+    == dubbo ==
+    -- **ReferenceAnnotationBeanPostProcessor** --
+    注入dubbo provider实例
+    end note
+
+
     :applyPropertyValues
     解析propertyValues中的依赖并注入到bean实例中;
 }
@@ -176,16 +264,32 @@ card "Initialization Before" #tan {
     #BeanClassLoaderAware
     #BeanFactoryAware;
     :<color:Purple> BeanPostProcessor.postProcessBeforeInitialization;
-    note
+    note left
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
         **default**
         ApplicationContextAwareProcessor
+        调用顺序应是再用户post接口之前,调用以下aware接口
+        # EnvironmentAware
+        # EmbeddedValueResolverAware
+        # ResourceLoaderAware
+        # ApplicationEventPublisherAware
+        # MessageSourceAware
+        # ApplicationContextAware
+        # ApplicationStartupAware
+
         BeanPostProcessorChecker
         **annotation callback**
         ConfigurationClassPostProcessor
         CommonAnnotationBeanPostProcessor
 
     end note
+    note right
+    == dubbo ==
+    -- **DubboConfigDefaultPropertyValueBeanPostProcessor** --
+    AbstractConfig -> ReferenceConfig
+    若dubbo代理对象没有显示设置ID,则将beanName设置为代理对象的id
+    end note
+
     :applyPropertyValues;
     note
     xml方式：解析 beanDefinition时 全部处理完毕
@@ -197,6 +301,17 @@ card "Initialization Before" #tan {
 
 card "Initialization" {
     :InitializingBean.afterPropertiesSet;
+    note left
+
+    end note
+
+    note right
+    == dubbo ==
+    -- **DubboConfigBeanInitializer** --
+
+
+    end note
+
     :invokeCustomInitMethod(beanName, bean, mbd);
 
 }

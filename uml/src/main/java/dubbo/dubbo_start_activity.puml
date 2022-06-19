@@ -13,10 +13,36 @@ start
 
 fork
     :DubboAutoConfiguration;
+    :@Bean
+    ServiceAnnotationPostProcessor;
+
     :@EnableDubboConfig
     @Import(DubboConfigConfigurationRegistrar.class)
     ;
+    :DubboConfigConfigurationRegistrar#registerBeanDefinitions;
+    note
+    注册的beanDefinition
+    == **dubbo bean** ==
+    **DefaultListableBeanFactory#manualSingletonNames**
+    # DubboSpringInitContext
+    # ApplicationModel
+    # ModuleModel
+    ====
+    # ServicePackagesHolder
+    # ReferenceBeanManager
+    == ** spring bean ** ==
+    -- post --
+    # ReferenceAnnotationBeanPostProcessor
+    # DubboConfigAliasPostProcessor
+    # DubboConfigDefaultPropertyValueBeanPostProcessor
+    # DubboInfraBeanRegisterPostProcessor
+    -- listener --
+    # DubboDeployApplicationListener
+    # DubboConfigApplicationListener
+    -- InitializingBean --
+    # DubboConfigBeanInitializer
 
+    end note
 
 
 fork again
@@ -25,6 +51,8 @@ fork again
     :DubboListenerAutoConfiguration;
 
 end fork
+
+
 
 stop
 

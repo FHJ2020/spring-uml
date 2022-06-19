@@ -161,30 +161,6 @@ note as dubboReferenceAnnotation
 == beanDefinition 解析阶段 ==
 **postProcessBeanFactory**
 
--- **功能1**  @DubboRferennce注解在字段、方法上注入provider形式,provider接口beanDefinition的创建过程 --
-# 从所有已注册的beanDefinition收集字段、方法上的@DubboRferennce注解,进行缓存并注册
-## injectedFieldReferenceBeanCache字段缓存缓存
-## injectedMethodReferenceBeanCache方法注入缓存
-# 根据字段或方法上的@DubboRferennce注解信息,注册一个beanDefinition,其beanClass为ReferenceBean
-以factoryBean方式返回一个@DubboReferecn注解的实例
-一个接口一个factoryBean
-注入同一个接口,但是配置相同则只会有一个factoryBean
-同一个接口配置相同则共用一个factoryBean,即返回同一个代理对象
-注册到spring中bean的name默认为字段名,即不指定@DubboReferenc的id属性
-dubbo通过group、version等属性生成一个dubbo key 以对应spring中多个beanName(一个provider接口,除了id外,其他属性都一致)
-**referenceBeanManager** 中保存了spring中的beanName和dubbo的reference的映射
-
--- **功能2** @Configuration方式声明@DubboReference,并以@Autowire方式注入provider --
-对ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry注册的@Bean beandefinition
-进行进一步处理,处理@Bean上的@DubboReference注解
-# 校验接口定义是否正确
-# 注解属性解析设置到 beanDefinition的propertyValues、attributes 字段中
-ReferenceBean#afterPropertiesSet解析attributes数据,以协助创造proxy
-
-
-判断beanDefinition的工厂接口返回类型是否ReferenceBean,来筛选@DubboReference注解的接口
-通过解析方法上的泛型确定beanClass
-
 == bean 创建阶段 ==
 **postProcessMergedBeanDefinition**
 
