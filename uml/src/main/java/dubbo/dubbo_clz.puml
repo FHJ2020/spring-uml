@@ -75,8 +75,9 @@ namespace dubboReference {
     }
     ReferenceBean -d--> FactoryBean
     note right of ReferenceBean
+    ==ReferenceBean#afterPropertiesSet==
     ReferenceBean实例创建后,设置proxy创建需要的信息,并将实例保存到ReferenceBeanManager中
-    ReferenceBean#afterPropertiesSet
+    添加到 ReferenceBeanManager 时,会设置 ReferenceConfig
     ===
     使用代理方式创建provider接口的子类
     ReferenceBean#createLazyProxy

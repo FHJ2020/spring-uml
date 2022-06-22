@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+note
+ExtensionLoader#createAdaptiveExtension
+end note
+start
+:Class#newInstance();
+:ExtensionPostProcessor#postProcessBeforeInitialization;
+:injectExtension;
+
+:ExtensionPostProcessor#postProcessAfterInitialization;
+:lifecycle.initialize();
+
+
+stop
+
+@enduml

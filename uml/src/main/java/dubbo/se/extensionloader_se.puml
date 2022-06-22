@@ -1,0 +1,59 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+'新建ExtensionLoader
+
+OtherClass -> ExtensionAccessor : getExtensionLoader
+ExtensionAccessor -> ExtensionDirector : getExtensionLoader
+group SELF_SCOPE
+    ExtensionDirector -> ExtensionLoader : new
+    note right
+    type = ExtensionInjector.class
+    injector = null
+    type = Other.class
+    injector = extensionDirector.getExtensionLoader(ExtensionInjector.class)
+                .getAdaptiveExtension());
+    end note
+end
+group TYPE_SPI_SCOPE_MATCH_ExtensionAccessor_SCOPE
+    ExtensionDirector -> ExtensionLoader : new
+    note right
+    所有scope都有一个Inject,AdaptiveExtensionInjector.class
+    end note
+end
+ExtensionLoader --> OtherClass : classLoader instance
+
+
+@enduml
+
+
+
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+'获取扩展类
+
+
+ExtensionLoader -> ExtensionLoader ++ : getExtensionClasses
+    ExtensionLoader -> ExtensionLoader : cacheDefaultExtensionName
+    note right
+    @SPI 注解value,第一个值
+    end note
+    ExtensionLoader -> ExtensionLoader : use LoadingStrategy info loadDirectory
+
+        group @Adaptive注解的实现类 <color:red> cachedAdaptiveClass
+            ExtensionLoader -> ExtensionLoader : cacheAdaptiveClass
+        end
+        group 实现类的构造函数中参数为当前类型 <color:red> cachedWrapperClasses
+            ExtensionLoader -> ExtensionLoader : cacheWrapperClass
+        end
+        group @Activate注解的实现类与配置中的名称匹配 <color:red> cachedActivates
+            ExtensionLoader -> ExtensionLoader : cacheActivateClass
+        end
+deactivate
+
+@enduml
+

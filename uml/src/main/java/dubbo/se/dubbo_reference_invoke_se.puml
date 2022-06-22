@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+client -> springProxyInstance : invoke provider method
+springProxyInstance -> JdkDynamicAopProxy ++ : invoke
+    JdkDynamicAopProxy -> DubboReferenceLazyInitTargetSource ++ : getTarget
+        DubboReferenceLazyInitTargetSource -> DubboReferenceLazyInitTargetSource ++ : getCallProxy
+            DubboReferenceLazyInitTargetSource -> ReferenceConfig : get
+            ReferenceConfig -> ProxyFactory : getProxy
+            ProxyFactory --> JdkDynamicAopProxy : return dubboProxyInstance
+        deactivate
+    deactivate
+    JdkDynamicAopProxy -> Invoker : invoke method
+deactivate
+Invoker --> client :return result
+
+    'JdkDynamicAopProxy -> target : invoke method
+
+
+
+
+
+
+
+@enduml

@@ -7,16 +7,16 @@ BeanFactory -> ReferenceBean ++ : getObject()
 
 ReferenceBean -> ReferenceBean ++ : createLazyProxy()
     ReferenceBean -> ProxyFactory: new
-    ProxyFactory --> ReferenceBean: return instance
+    ProxyFactory --> ReferenceBean: return ProxyFactory instance
     ReferenceBean -> ProxyFactory : setTargetSource \n <color:red>DubboReferenceLazyInitTargetSource
     ReferenceBean -> ProxyFactory : 设置接口及其他数据
         ReferenceBean -> ProxyFactory ++ : getProxy
             ProxyFactory -> ProxyFactory ++ : createAopProxy()
-                ProxyFactory -> ProxyFactory ++ : getAopProxyFactory()
-                    ProxyFactory -> DefaultAopProxyFactory : createAopProxy(this)
-                    DefaultAopProxyFactory -> JdkDynamicAopProxy : new
-                    JdkDynamicAopProxy --> ProxyFactory  : return instance
-                    deactivate
+                ProxyFactory -> ProxyFactory  : getAopProxyFactory()
+                ProxyFactory -> DefaultAopProxyFactory : createAopProxy(this)
+                DefaultAopProxyFactory -> JdkDynamicAopProxy : new
+                JdkDynamicAopProxy --> ProxyFactory  : return JdkDynamicAopProxy instance
+
 
                 ProxyFactory -> JdkDynamicAopProxy : getProxy
                 JdkDynamicAopProxy -> Proxy : newProxyInstance
@@ -24,11 +24,11 @@ ReferenceBean -> ReferenceBean ++ : createLazyProxy()
                 JdkDynamicAopProxy 实现了InvocationHandler
                 end note
 
-            Proxy -> ProxyFactory : return proxyInstance
+'            Proxy -> ProxyFactory : return proxyInstance
+            Proxy --> BeanFactory : return proxyInstance
             deactivate
-        ProxyFactory --> ReferenceBean : return proxyInstance
         deactivate
-ReferenceBean --> BeanFactory : return proxyInstance
+    deactivate
 deactivate
 
 

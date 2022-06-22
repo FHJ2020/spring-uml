@@ -1,0 +1,181 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+
+namespace spi {
+    namespace FRAMEWORK_SCOPE {
+        interface Compiler
+        interface Converter<S, T>
+        interface Protocol
+        interface BuiltinServiceDetector
+        interface InvokerListener
+        interface ProxyFactory
+    }
+    namespace APPLICATION_SCOPE {
+        interface ApplicationExt extends Lifecycle
+        interface ServiceDiscoveryFactory
+        interface DynamicConfigurationFactory
+        interface RegistryFactory
+    }
+    namespace MODULE_SCOPE {
+        interface Filter
+        interface ClusterFilter
+        interface RegistryProtocolListener
+        interface ModuleExt extends Lifecycle
+    }
+
+    namespace SELF_SCOPE {
+        interface ExtensionInjector
+        note top of ExtensionInjector
+        组件实例注入器
+        end note
+        class SpiExtensionInjector implements ExtensionInjector
+        class ScopeBeanExtensionInjector implements ExtensionInjector
+        class SpringExtensionInjector implements ExtensionInjector
+        class AdaptiveExtensionInjector implements ExtensionInjector{
+            - List<ExtensionInjector> injectors
+        }
+        note top of AdaptiveExtensionInjector
+        持有3个injector
+        SpiExtensionInjector
+        ScopeBeanExtensionInjector
+        SpringExtensionInjector
+        ===
+        实例化时调用 AdaptiveExtensionInjector#initialize
+        注入ExtensionInjector的3个子类
+        end note
+        interface ScopeModelInitializer
+
+    }
+
+
+
+
+}
+namespace extension{
+    interface ExtensionAccessor {
+        + ExtensionDirector getExtensionDirector()
+        ---
+        + <T> ExtensionLoader<T> getExtensionLoader(Class<T> type)
+        ---
+        + <T> T getExtension(Class<T> type, String name)
+        + <T> T getAdaptiveExtension(Class<T> type)
+        + <T> T getDefaultExtension(Class<T> type)
+    }
+    note right of ExtensionAccessor
+    code {
+        default <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
+            return this.getExtensionDirector().getExtensionLoader(type);
+        }
+    }
+    通过getExtensionDirector()返回ExtensionLoader
+    end note
+    abstract class ScopeModel implements ExtensionAccessor {
+        - ScopeModel parent
+        - ExtensionScope scope
+        ---
+        - ExtensionDirector extensionDirector
+        - ScopeBeanFactory beanFactory;
+        - List<ScopeModelDestroyListener> destroyListeners;
+        - Map<String, Object> attributes
+        - AtomicBoolean destroyed
+    }
+    class ApplicationModel extends ScopeModel
+    class FrameworkModel extends ScopeModel
+    class ModuleModel extends ScopeModel
+    class ExtensionDirector implements ExtensionAccessor {
+        - ExtensionDirector parent
+        - ExtensionScope scope
+        - ScopeModel scopeModel
+        ---
+        - ConcurrentMap<Class<?>, ExtensionLoader<?>> extensionLoadersMap
+        - ConcurrentMap<Class<?>, ExtensionScope> extensionScopeMap
+        - List<ExtensionPostProcessor> extensionPostProcessors
+        - AtomicBoolean destroyed
+        ===
+        ExtensionLoader<T> getExtensionLoader(Class<T> type)
+    }
+    note bottom of ExtensionDirector
+    每一个scopeModel都有自己的ExtensionDirector
+    ExtensionDirector就是该Model的loader管理器
+    在一个scope中extension查询只会做一次,之后都是从缓存中获取
+    在这个scope下的所有extension都是共享的
+    ===
+    重写getExtensionLoader方法,构建 ExtensionLoader对象
+    根据type上@SPI注解的scope属性确定ExtensionLoader对象的创建方式
+    # SELF,直接创建
+    # 其他,判断director与type的scope相同才创建,内部创建的时候都会先创建
+    ExtensionInjector的ExtensionLoader,然后再通过其返回一个injector(它的子类)
+    ==extensionLoadersMap==
+    一个type对应一个loader,loader创建后都会缓存在map中
+    获取loader时先从map中获取
+    ==extensionScopeMap==
+    一个type对应一个scope
+    end note
+
+    ScopeModel -r--> ExtensionDirector : 委托实现 getExtension
+}
+namespace loader {
+    class ExtensionLoader<T> {
+        - ScopeModel scopeModel
+        - ExtensionInjector injector
+        - ExtensionDirector extensionDirector
+        ---
+        - Class<?> type
+        - ConcurrentMap<Class<?>, Object> extensionInstances
+        - ConcurrentMap<Class<?>, String> cachedNames
+        - Class<?> cachedAdaptiveClass = null;
+        ---
+        Holder<Map<String, Class<?>>> cachedClasses
+        Map<String, Object> cachedActivates
+        Map<String, Set<String>> cachedActivateGroups
+        Map<String, String[][]> cachedActivateValues
+        ConcurrentMap<String, Holder<Object>> cachedInstances
+        Holder<Object> cachedAdaptiveInstance
+        String cachedDefaultName;
+
+        Set<Class<?>> cachedWrapperClasses;
+        static LoadingStrategy[] strategies = loadLoadingStrategies();
+        List<ExtensionPostProcessor> extensionPostProcessors;
+        InstantiationStrategy instantiationStrategy;
+        AtomicBoolean destroyed
+    ---
+        + T getExtension(String name)
+        + T getAdaptiveExtension()
+        + T getDefaultExtension()
+    }
+    note top of ExtensionLoader
+    ==extensionDirector==
+    持有当前loader的director对象引用
+    ==injector==
+    每一个model都有自己的注入器,为属性注入依赖
+    type=ExtensionInjector时 injector=null
+    type为其他时 injector=AdaptiveExtensionInjector
+
+
+    ==cachedAdaptiveClass==
+    实现类注解了@Adaptive
+    AdaptiveExtensionInjector  协助loader进行依赖注入
+    AdaptiveCompiler 对方法上注解了@Adaptive的类,进行动态类生成
+    只对@Adaptive注解的方法进行增强,远程方式控制调用的扩展类方法:
+        通过url中获取扩展名字,loader通过名字获取扩展类,然后调用扩展类的方法
+    ===
+    scope:
+    SELF,ExtensionInjector,ScopeModelInitializer
+    FRAMEWORK
+    APPLICATION
+    MODULE
+
+    end note
+    interface LoadingStrategy
+    note bottom of LoadingStrategy
+    java.util.ServiceLoader.load(java.lang.Class<S>)
+    META-INF/services/org.apache.dubbo.common.extension.LoadingStrategy
+    LoadingStrategy实现接口通过java的ServiceLoader.load加载
+    dubbo自身的扩展通过被加载的LoadingStrategy加载
+    end note
+    ExtensionLoader --> LoadingStrategy : loadExtensionClasses
+}
+extension.ExtensionDirector -r---> loader.ExtensionLoader : 调用获取扩展类
+loader.LoadingStrategy -r--> spi : 加载@SPI注解的接口实现类
+@enduml
