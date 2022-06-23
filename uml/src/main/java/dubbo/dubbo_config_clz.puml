@@ -1,0 +1,90 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+!pragma useNewPackage
+set separator .
+
+
+
+
+
+namespace application {
+    class ApplicationModel{
+        - Environment environment
+        - ConfigManager configManager
+        - ServiceRepository serviceRepository
+    }
+    class Environment implements ApplicationExt {
+        - CompositeConfiguration globalConfiguration
+        ---
+        - SystemConfiguration systemConfiguration
+        - EnvironmentConfiguration environmentConfiguration
+        - InmemoryConfiguration appExternalConfiguration
+        - InmemoryConfiguration externalConfiguration
+        - InmemoryConfiguration appConfiguration
+        - PropertiesConfiguration propertiesConfiguration
+    }
+    note left of Environment
+    globalConfiguration包含以下配置
+    # systemConfiguration
+        System.getProperty
+    # environmentConfiguration
+        System.getenv
+    # appExternalConfiguration
+    # externalConfiguration
+    # appConfiguration
+    # propertiesConfiguration
+        PropertiesConfiguration#refresh
+        优先从system中获取dubbo.properties.file配置的路径
+        空则从env中获取
+        都空从以dubbo.properties为路径
+        加载路径下面的properties文件内容
+
+    end note
+
+    class ConfigManager implements ApplicationExt {
+        - Environment environment
+        - ApplicationModel applicationModel
+    }
+    note top of ConfigManager
+    ConfigManager只属于ApplicationModel
+    ApplicationModel与ConfigManager指向同一个Environment对象
+    end note
+
+    ConfigManager::environment ---> Environment
+    ApplicationModel::environment ---> Environment
+}
+
+
+
+namespace module{
+    class ModuleModel {
+        - ModuleEnvironment moduleEnvironment
+        - ModuleConfigManager moduleConfigManager
+    }
+
+
+    class ModuleConfigManager{
+        - ConfigManager applicationConfigManager
+        - Environment environment
+    }
+    class ModuleEnvironment implements ModuleExt {
+        - Environment applicationDelegate
+        - CompositeConfiguration globalConfiguration
+        - OrderedPropertiesConfiguration orderedPropertiesConfiguration
+    }
+    note left of ModuleEnvironment
+    globalConfiguration包含以下配置
+    # ApplicationModel.environment.globalConfiguration
+    # orderedPropertiesConfiguration
+    end note
+
+    ModuleConfigManager::environment ---> ModuleEnvironment
+    ModuleModel::moduleConfigManager --> ModuleConfigManager
+    ModuleModel::moduleEnvironment --> ModuleEnvironment
+}
+module.ModuleConfigManager::applicationConfigManager ---> application.ApplicationModel::configManager
+module.ModuleEnvironment::applicationDelegate ---> application.ApplicationModel::environment
+
+
+
+@enduml

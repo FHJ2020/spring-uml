@@ -111,6 +111,9 @@ namespace extension{
     获取loader时先从map中获取
     ==extensionScopeMap==
     一个type对应一个scope
+    ==extensionInstances==
+    extension所有实例,不包含adaptive类上注解的,wrap
+
     end note
 
     ScopeModel -r--> ExtensionDirector : 委托实现 getExtension

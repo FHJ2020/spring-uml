@@ -150,6 +150,10 @@ card "BeanDefinition回调处理" #tan{
 
     判断beanDefinition的工厂接口返回类型是否ReferenceBean,来筛选@DubboReference注解的接口
     通过解析方法上的泛型确定beanClass
+    ----
+    <color:red>发送early事件 DubboConfigInitEvent
+    applicationContext.publishEvent(new DubboConfigInitEvent(applicationContext))
+
 
     -- **DubboInfraBeanRegisterPostProcessor** --
     <color:red> todo
@@ -279,11 +283,12 @@ card "Initialization Before" #tan {
     #BeanNameAware
     #BeanClassLoaderAware
     #BeanFactoryAware;
-    :<color:Purple> BeanPostProcessor.postProcessBeforeInitialization;
+    :<color:Purple> BeanPostProcessor#postProcessBeforeInitialization;
     note left
         SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference 功能相似
         **default**
-        ApplicationContextAwareProcessor
+        ApplicationContextAwareProcessor spring第一个会被执行的processor
+
         调用顺序应是再用户post接口之前,调用以下aware接口
         # EnvironmentAware
         # EmbeddedValueResolverAware

@@ -52,6 +52,23 @@ fork again
 
 end fork
 
+card DubboSpringInitializer.initialize(registry) #tan{
+    fork
+
+    end fork
+    :FrameworkModel.defaultModel()
+    .getExtensionLoader(DubboSpringInitCustomizer.class)
+    ;
+    :DubboSpringInitCustomizer.customize;
+
+    :applicationModel = ApplicationModel.defaultModel();
+
+    :context.setModuleModel
+    applicationModel.getDefaultModule();
+    :registerCommonBeans;
+}
+:;
+
 
 
 stop

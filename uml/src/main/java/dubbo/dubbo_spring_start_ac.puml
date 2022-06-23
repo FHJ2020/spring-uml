@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:ReferenceAnnotationBeanPostProcessor
+<color:red>applicationContext.publishEvent(new DubboConfigInitEvent(applicationContext))
+;
+
+:DubboConfigApplicationListener#onApplicationEvent(DubboConfigInitEvent event);
+
+:DubboConfigBeanInitializer#afterPropertiesSet;
+note
+AbstractApplicationContext#registerListeners
+end note
+
+:;
+
+@enduml

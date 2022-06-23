@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+card new_FrameworkModel #skyblue {
+    :super;
+    card initialize {
+        :super;
+        :this.getExtensionLoader(ScopeModelInitializer.class);
+        :initializer.initializeFrameworkModel;
+
+        :internalApplicationModel = new ApplicationModel(this, true);
+
+    }
+    :initialize;
+
+
+}
+:FrameworkModel();
+:new page;
+if (Page.onSecurityCheck) then (true)
+  :Page.onInit();
+  if (isForward?) then (no)
+    :Process controls;
+    if (continue processing?) then (no)
+      stop
+    endif
+
+    if (isPost?) then (yes)
+      :Page.onPost();
+    else (no)
+      :Page.onGet();
+    endif
+    :Page.onRender();
+  endif
+else (false)
+endif
+
+if (do redirect?) then (yes)
+  :redirect process;
+else
+  if (do forward?) then (yes)
+    :Forward request;
+  else (no)
+    :Render page template;
+  endif
+endif
+
+stop
+
+@enduml
