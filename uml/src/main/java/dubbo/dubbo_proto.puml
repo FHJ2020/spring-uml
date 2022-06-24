@@ -1,0 +1,106 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface Exporter
+abstract class AbstractExporter<T> implements Exporter
+class InjvmExporter<T> extends AbstractExporter
+
+
+interface Invoker
+class DelegateProviderMetaDataInvoker<T> implements Invoker{
+    Invoker<T> invoker
+    ServiceConfig<?> metadata
+}
+
+interface ProxyFactory {
+    @Adaptive({PROXY_KEY})
+    <T> T getProxy(Invoker<T> invoker)
+    @Adaptive({PROXY_KEY})
+    <T> T getProxy(Invoker<T> invoker, boolean generic)
+    @Adaptive({PROXY_KEY})
+    <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+class JdkProxyFactory extends AbstractProxyFactory
+
+abstract class AbstractProxyFactory implements ProxyFactory
+
+class ProxyFactory$Adaptive implements ProxyFactory{
+    <T> T getProxy(Invoker<T> invoker)
+    <T> T getProxy(Invoker<T> invoker, boolean generic)
+    <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+
+ProxyFactory$Adaptive --> JdkProxyFactory
+note on link
+extName=jdk
+extName=Invoker.getUrl.getProtocol()
+从URL中获取extName指定扩展
+----
+scopeModel
+.getExtensionLoader(ProxyFactory.class)
+.getExtension(extName)
+end note
+
+
+ProxyFactory --> Invoker : getInvoker
+
+
+interface Protocol {
+    int getDefaultPort();
+    @Adaptive
+    <T> Exporter<T> export(Invoker<T> invoker)
+    @Adaptive
+    <T> Invoker<T> refer(Class<T> type, URL url)
+}
+
+class Protocol$Adaptive implements Protocol{
+    <T> Exporter<T> export(Invoker<T> invoker)
+    <T> Invoker<T> refer(Class<T> type, URL url)
+}
+
+namespace export_injvm{
+    class ProtocolSerializationWrapper  {
+        - Protocol protocol
+    }
+    class ProtocolFilterWrapper {
+        - Protocol protocol
+    }
+
+    class QosProtocolWrapper {
+        - Protocol protocol
+    }
+
+    class ProtocolListenerWrapper {
+        - Protocol protocol
+    }
+    class InjvmProtocol
+
+
+    ProtocolSerializationWrapper::protocol -->ProtocolFilterWrapper
+    ProtocolFilterWrapper::protocol -->QosProtocolWrapper
+    QosProtocolWrapper::protocol -->ProtocolListenerWrapper
+    ProtocolListenerWrapper::protocol -->InjvmProtocol
+}
+
+
+
+
+
+
+Protocol$Adaptive ---> export_injvm : export
+note on link
+extName=injvm
+extName=Invoker.getUrl.getProtocol()
+scopeModel.getExtensionLoader(Protocol.class)
+.getExtension(extName);
+----
+
+ProtocolSerializationWrapper.export
+逻辑处理,然后调用  protocol.export
+warp一样的逻辑
+
+end note
+
+@enduml

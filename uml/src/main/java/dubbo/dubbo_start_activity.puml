@@ -13,12 +13,49 @@ start
 
 fork
     :DubboAutoConfiguration;
+    fork
+    :@EnableDubboConfig;
+    :@Import(DubboConfigConfigurationRegistrar.class)
+    ;
+    fork again
     :@Bean
     ServiceAnnotationPostProcessor;
+    fork again
+    :@EnableConfigurationProperties(DubboConfigurationProperties.class);
+    :@Import(EnableConfigurationPropertiesRegistrar.class);
+    :registerBean
 
-    :@EnableDubboConfig
-    @Import(DubboConfigConfigurationRegistrar.class)
-    ;
+     ;
+
+    note
+    # 注册必要的处理 beanDefinition
+    ----
+    ## ConfigurationPropertiesBindingPostProcessor
+    ## ConfigurationPropertiesBinder.Factory
+    ## ConfigurationPropertiesBinder
+    ConfigurationPropertiesBinder.Factory是ConfigurationPropertiesBinder的factory
+    以supplier的方式返回ConfigurationPropertiesBinder实例
+    ----
+    ## MethodValidationExcludeFilter
+    ----
+    ## BoundConfigurationProperties
+    ----
+    # 将EnableConfigurationProperties配置的class注册beanDefinition
+    ## 收集EnableConfigurationProperties中的value(配置的class)
+    ## 根据class上的ConfigurationProperties注解,注册beanDefinition
+    ### beanName: prefix-className;
+    ### 例: server-org.springframework.boot.autoconfigure.web.ServerProperties
+
+
+
+    end note
+
+
+    end fork
+
+
+
+
     :DubboConfigConfigurationRegistrar#registerBeanDefinitions;
     note
     注册的beanDefinition
@@ -53,9 +90,7 @@ fork again
 end fork
 
 card DubboSpringInitializer.initialize(registry) #tan{
-    fork
 
-    end fork
     :FrameworkModel.defaultModel()
     .getExtensionLoader(DubboSpringInitCustomizer.class)
     ;
@@ -70,7 +105,51 @@ card DubboSpringInitializer.initialize(registry) #tan{
 :;
 
 
+:ReferenceAnnotationBeanPostProcessor
+<color:red>applicationContext.publishEvent(new DubboConfigInitEvent(applicationContext))
+;
+note
+beanDefinition的post回调方法发布事件,都会将事件存储在
+AbstractApplicationContext#earlyApplicationEvents
+在AbstractApplicationContext#registerListeners
+中发布early事件,然后清空
+
+end note
+:AbstractApplicationContext#registerListeners;
+note
+广播early事件
+end note
+
+:DubboConfigApplicationListener#onApplicationEvent(DubboConfigInitEvent event);
+note
+响应事件
+以getBean的方式构造DubboConfigBeanInitializer,并调用
+end note
+
+:DubboConfigBeanInitializer#afterPropertiesSet;
+note
+configManager赋值
+referenceBeanManager.prepareReferenceBeans()
+----
+DubboConfigurationProperties
+DubboConfigConfiguration
+
+end note
+
+:ModuleDeployer.prepare;
+:applicationDeployer.initialize();
+:ModuleDeployer.initialize();
 
 stop
 
+@enduml
+
+@startuml
+start
+:DubboDeployApplicationListener#setApplicationContext;
+:ModuleDeployer#start;
+:ModuleDeployer#exportServices;
+
+
+stop
 @enduml

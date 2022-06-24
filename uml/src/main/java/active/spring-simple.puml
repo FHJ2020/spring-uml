@@ -158,6 +158,7 @@ card "BeanDefinition回调处理" #tan{
     -- **DubboInfraBeanRegisterPostProcessor** --
     <color:red> todo
     注册一些bean、初始化dubbo相关bean
+    从spring中的dubbo的配置项,放到applicationModel的environment中,Environment#appConfiguration
     -- **ServiceAnnotationPostProcessor** --
     **@DubboService声明在@Bean方法上的处理过程**
     处理规则参考postProcessBeanDefinitionRegistry
