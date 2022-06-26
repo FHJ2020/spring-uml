@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+
+node DubboLayer [
+
+Protocol
+....
+Exchanger
+....
+Transporter
+....
+NettyServer
+ExecutorRepository
+....
+Dispatcher
+线程池
+....
+ChannelHandler
+
+]
+
+@enduml

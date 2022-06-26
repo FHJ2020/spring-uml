@@ -1,6 +1,11 @@
 @startuml
 'https://plantuml.com/class-diagram
 
+note as all
+org.apache.dubbo.registry.client.metadata.MetadataUtils#publishServiceDefinition
+end note
+
+
 interface Exporter
 abstract class AbstractExporter<T> implements Exporter
 class InjvmExporter<T> extends AbstractExporter
@@ -21,9 +26,8 @@ interface ProxyFactory {
     <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
 }
 
-class JdkProxyFactory extends AbstractProxyFactory
 
-abstract class AbstractProxyFactory implements ProxyFactory
+
 
 class ProxyFactory$Adaptive implements ProxyFactory{
     <T> T getProxy(Invoker<T> invoker)
@@ -32,19 +36,41 @@ class ProxyFactory$Adaptive implements ProxyFactory{
 }
 
 
-ProxyFactory$Adaptive --> JdkProxyFactory
+
+
+
+namespace proxyFactory_local_injvm {
+    class StubProxyFactoryWrapper {
+        - ProxyFactory proxyFactory
+    }
+    class JdkProxyFactory
+    note bottom of JdkProxyFactory
+    <color:red> parameter中的proxy参数为jdk
+    getInvoker 返回一个以反射方式调用provider实现类的Invoker
+    end note
+
+    StubProxyFactoryWrapper::proxyFactory --> JdkProxyFactory
+}
+ProxyFactory$Adaptive --> proxyFactory_local_injvm : getInvoker
 note on link
-extName=jdk
-extName=Invoker.getUrl.getProtocol()
-从URL中获取extName指定扩展
+<color:red> ProxyFactory的extension创建invoker(getInvoker方法)说明
+# 加载扩展时通过warp扩展对原始的扩展(url中配置的扩展)进行包装,wrap之间链式包装
+# 调用getInvoker时,其实是wrap的getInvoker调用链
+# wrap的getInvoker方法逻辑有2部分,wrap逻辑,调用下一个wrap,直到最后url中配置的扩展
+
+---
+extName=Invoker.getUrl.getParameter("proxy", "javassist")
+从parameter中获取extName指定扩展
 ----
 scopeModel
 .getExtensionLoader(ProxyFactory.class)
 .getExtension(extName)
+----
+StubProxyFactoryWrapper.proxyFactory.getInvoker ->
+JdkProxyFactory.getInvoker
 end note
 
-
-ProxyFactory --> Invoker : getInvoker
+'ProxyFactory --> Invoker : getInvoker
 
 
 interface Protocol {
@@ -54,13 +80,137 @@ interface Protocol {
     @Adaptive
     <T> Invoker<T> refer(Class<T> type, URL url)
 }
+interface Exchanger
 
 class Protocol$Adaptive implements Protocol{
     <T> Exporter<T> export(Invoker<T> invoker)
     <T> Invoker<T> refer(Class<T> type, URL url)
 }
+Protocol --> Exchanger
+
 
 namespace export_injvm{
+    namespace ProtocolWrapInjvm {
+        class ProtocolSerializationWrapper  {
+            - Protocol protocol
+        }
+        class ProtocolFilterWrapper {
+            - Protocol protocol
+        }
+        note left of ProtocolFilterWrapper
+        export
+        获取Filter.class的扩展类
+        对invoker进行包装
+
+        end note
+
+        class QosProtocolWrapper {
+            - Protocol protocol
+        }
+
+        class ProtocolListenerWrapper {
+            - Protocol protocol
+        }
+        note left of ProtocolListenerWrapper
+        export时 执行监听器的ExporterListener#export方法
+        ListenerExporterWrapper
+        end note
+        class InjvmProtocol
+
+
+        ProtocolSerializationWrapper::protocol -->ProtocolFilterWrapper
+        ProtocolFilterWrapper::protocol -->QosProtocolWrapper
+        QosProtocolWrapper::protocol -->ProtocolListenerWrapper
+        ProtocolListenerWrapper::protocol -->InjvmProtocol
+
+    }
+
+
+    class CallbackRegistrationInvoker implements Invoker{
+        TYPE originalInvoker;
+        Invoker<T> nextNode;
+        FILTER filter;
+    }
+    class CopyOfFilterChainNode implements Invoker
+
+
+
+
+    namespace filterObj {
+        note as filterObjNote
+        调用关系
+        CallbackRegistrationInvokerObj.filterInvoker.invoke(invocation) ->
+        CopyOfFilterChainNodeObj1.filter.invoke(nextNode, invocation) ->
+            ProfilerServerFilter逻辑
+            nextNode.invoke(invocation) ->
+        CopyOfFilterChainNodeObj2.filter.invoke(nextNode, invocation) ->
+            EchoFilter逻辑
+            nextNode.invoke(invocation) ->
+        JdkProxyFactoryInvoker
+
+        end note
+
+        map JdkProxyFactoryInvoker{
+
+        }
+
+        map CopyOfFilterChainNodeObj2{
+            TYPE originalInvoker => JdkProxyFactoryInvoker
+            Invoker<T> nextNode *-> JdkProxyFactoryInvoker
+            FILTER filter => EchoFilter
+        }
+
+        map CopyOfFilterChainNodeObj1{
+            TYPE originalInvoker => JdkProxyFactoryInvoker
+            Invoker<T> nextNode *-> CopyOfFilterChainNodeObj2
+            FILTER filter => ProfilerServerFilter
+        }
+
+        map CallbackRegistrationInvokerObj{
+            Invoker<T> filterInvoker *-> CopyOfFilterChainNodeObj1
+            List<FILTER> filters =>
+        }
+
+
+    }
+
+
+    class ListenerExporterWrapper{
+        Exporter<T> exporter
+        List<ExporterListener> listeners
+    }
+
+}
+
+
+
+Protocol$Adaptive ---> export_injvm : export
+note on link
+<color:red> Protocol的extension创建exporter时(export方法)说明
+# 加载扩展时通过warp扩展对原始的扩展(url中配置的扩展)进行包装,wrap之间链式包装
+# 调用export时,其实是wrap的export调用链
+# wrap的export方法逻辑有2部分,wrap逻辑,调用下一个wrap,直到最后url中配置的扩展
+# filter就是ProtocolFilterWrapper对exporter进行包装,provider调用时才会被调用
+# ExporterListener就是ProtocolListenerWrapper在调用exporter后,执行ExporterListener的export方法
+----
+extName=injvm
+extName=Invoker.getUrl.getProtocol()
+scopeModel.getExtensionLoader(Protocol.class)
+.getExtension(extName);
+----
+
+ProtocolSerializationWrapper.export
+逻辑处理,然后调用  protocol.export
+warp一样的逻辑
+
+end note
+
+
+
+
+
+
+namespace dubbo_protocol_wrap {
     class ProtocolSerializationWrapper  {
         - Protocol protocol
     }
@@ -75,32 +225,81 @@ namespace export_injvm{
     class ProtocolListenerWrapper {
         - Protocol protocol
     }
-    class InjvmProtocol
+    class DubboProtocol
 
 
     ProtocolSerializationWrapper::protocol -->ProtocolFilterWrapper
     ProtocolFilterWrapper::protocol -->QosProtocolWrapper
     QosProtocolWrapper::protocol -->ProtocolListenerWrapper
-    ProtocolListenerWrapper::protocol -->InjvmProtocol
+    ProtocolListenerWrapper::protocol -->DubboProtocol
 }
+namespace registry_protocol_wrap {
+    class ProtocolSerializationWrapper  {
+        - Protocol protocol
+    }
+    class ProtocolFilterWrapper {
+        - Protocol protocol
+    }
+
+    class QosProtocolWrapper {
+        - Protocol protocol
+    }
+
+    class ProtocolListenerWrapper {
+        - Protocol protocol
+    }
+    class RegistryProtocol {
+        - ConcurrentMap<String, ExporterChangeableWrapper<?>> bounds
+    }
+    note right of RegistryProtocol
+    RegistryProtocol#doLocalExport
+    调用export时,会去调用实际的protocol.export,封装成ExporterChangeableWrapper
+    保存在bounds字段中
+    DubboProtocol#export调用时会加载Transporter的扩展NettyTransporter
+    NettyTransporter#bind会创建netty服务,由于bind时创建netty服务,所以需要缓存
+    防止重复创建netty服务
+    缓存
+    AbstractProtocol#serverMap,key为ip:port(192.168.81.1:20880),value为netty服务
 
 
+    end note
 
-
-
-
-Protocol$Adaptive ---> export_injvm : export
-note on link
-extName=injvm
-extName=Invoker.getUrl.getProtocol()
-scopeModel.getExtensionLoader(Protocol.class)
-.getExtension(extName);
+    ProtocolSerializationWrapper::protocol -->ProtocolFilterWrapper
+    ProtocolFilterWrapper::protocol -->QosProtocolWrapper
+    QosProtocolWrapper::protocol -->ProtocolListenerWrapper
+    ProtocolListenerWrapper::protocol -->RegistryProtocol
+}
+note top of dubbo_protocol_wrap
+getDefaultPort
 ----
-
-ProtocolSerializationWrapper.export
-逻辑处理,然后调用  protocol.export
-warp一样的逻辑
+ProtocolSerializationWrapper.protocol.getDefaultPort ->
+ProtocolFilterWrapper.protocol.getDefaultPort ->
+QosProtocolWrapper.protocol.getDefaultPort ->
+ProtocolListenerWrapper.protocol.getDefaultPort ->
+DubboProtocol.getDefaultPort ->
 
 end note
 
+
+namespace gen {
+note as n1
+ProxyFactory 将服务实现类、接口、url封装成invoker
+Protocol 再将invoker 转换成 Exporter
+end note
+    interface ProxyFactory
+    interface Invoker
+    interface Exporter
+    interface Protocol
+    ProxyFactory --> Invoker : getInvoker
+    Protocol -->  Exporter : export
+}
+
+interface Registry extends  RegistryService
+class ServiceDiscoveryRegistry implements Registry {
+    ServiceDiscovery serviceDiscovery
+    MetadataInfo metadataInfo
+}
+interface ServiceDiscovery extends RegistryService
+class NacosServiceDiscovery implements ServiceDiscovery
+ServiceDiscoveryRegistry::serviceDiscovery -r--> NacosServiceDiscovery
 @enduml

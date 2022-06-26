@@ -1,0 +1,14 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface DynamicConfigurationFactory
+class NacosDynamicConfigurationFactory implements DynamicConfigurationFactory
+
+interface DynamicConfiguration
+class NacosDynamicConfiguration implements DynamicConfiguration
+
+DynamicConfigurationFactory -r--> DynamicConfiguration : create
+NacosDynamicConfigurationFactory -r--> NacosDynamicConfiguration : create
+
+
+@enduml
