@@ -1,0 +1,106 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant DubboDeployApplicationListener
+participant ModuleDeployer
+participant ApplicationDeployer
+participant DeployListener
+
+autonumber
+
+
+
+-> DubboDeployApplicationListener : onApplicationEvent
+note right
+onContextRefreshedEvent
+AbstractApplicationContext#finishRefresh 发布事件
+end note
+DubboDeployApplicationListener -> ModuleDeployer ++ : start
+    ModuleDeployer -> ModuleDeployer ++ : onModuleStarting()
+        note right
+        设置moduleDeploy.state = STARTING
+        end note
+
+        ModuleDeployer -> DeployListener : onStarting
+        ModuleDeployer -> ApplicationDeployer ++ : notifyModuleChanged \n DeployState.STARTING
+            ApplicationDeployer -> ApplicationDeployer : calculateState()
+            note right
+            根据module的状态计算application新状态
+            并根据状态调用相关方法
+            end note
+            ApplicationDeployer -> ApplicationDeployer ++ : onStarting()
+                note right
+                新状态为 STARTING,并设置applicationDeploy.state=STARTING
+                end note
+                ApplicationDeployer -> DeployListener : onStarting
+                note right
+                ExporterDeployListener
+                DubboDeployApplicationListener#setApplicationContext
+                    addDeployListener
+                    将dubbo事件发布到spring中,dubbo事件触发时,调用spring发布事件 DubboApplicationStateEvent
+                end note
+            deactivate
+        deactivate
+    deactivate
+
+    ModuleDeployer -> ApplicationDeployer : initialize
+    note right
+    prepare 方法已调用
+    end note
+    ModuleDeployer -> ModuleDeployer : initialize()
+    note right
+    prepare 方法已调用
+    end note
+
+    ModuleDeployer -> ModuleDeployer ++ : exportServices
+        note right
+        end note
+        loop  ModuleConfigManager#getServices
+            ModuleDeployer -> ServiceConfigBase : refresh
+            note right
+            将providerConfig和环境属性赋值到 ServiceConfigBase 对应的属性中
+            end note
+            ModuleDeployer -> ServiceConfigBase : export
+            note right
+            ServiceConfigBase即ServiceBean
+            ServiceAnnotationPostProcessor扫描@DubboService注册的beanDefinition
+            ServiceBean#afterPropertiesSet 调用时添加到 ModuleConfigManager#configsCache
+            exportAsync=true ,放到线程池中执行
+            export后添加到 DefaultModuleDeployer#exportedServices
+            ----
+            # ServiceConfig#serviceListeners 添加ServiceListener扩展实例
+            # AbstractInterfaceConfig#serviceMetadata 赋值
+            # ModuleServiceRepository#services 注册 ServiceDescriptor
+            # ServiceConfig#providerModel构造
+            ## ModuleServiceRepository#providers 注册 ProviderModel
+            ## frameworkServiceRepository#providers 注册 ProviderModel
+            # 加载注册中心url
+            ## 获取服务注册模式 dubbo.application.register-mode
+                未配置默认为all
+                RegistryConstants 配置值
+                    DEFAULT_REGISTER_MODE_INTERFACE = "interface";
+                    DEFAULT_REGISTER_MODE_INSTANCE = "instance";
+                    DEFAULT_REGISTER_MODE_ALL = "all";
+            ### 优先从配置中心获取
+                // RegistryConstants#DUBBO_REGISTER_MODE_DEFAULT_KEY
+                dataId=dubbo.application.register-mode
+                //DynamicConfiguration#DEFAULT_GROUP
+                group=dubbo
+            ### 从环境变量中获取
+                key= dubbo.application.register-mode
+            # 使用 FrameworkStatusReporter扩展report状态
+
+            end note
+        end
+
+    deactivate
+
+    ModuleDeployer -> ModuleDeployer : referServices()
+    ModuleDeployer -> ModuleDeployer : 同步、异步处理
+
+
+
+
+
+
+@enduml

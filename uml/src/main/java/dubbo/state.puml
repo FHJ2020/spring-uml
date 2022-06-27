@@ -1,0 +1,28 @@
+@startuml
+'https://plantuml.com/state-diagram
+
+scale 350 width
+[*] --> Pending
+note right of Pending
+DefaultModuleDeployer 构造时默认为 Pending
+ServiceBean#afterPropertiesSet调用时也会设置 Pending
+只要spring容器创建一个ServiceBean实例,都会修改状态为 Pending
+end note
+
+Pending --> STARTING
+note right of STARTING
+deployer.start() 修改为 STARTING
+    如果已经是STARTING状态,直接返回
+    如果是STOPPING STOPPED FAILED 抛出异常
+end note
+
+STARTING --> STOPPING
+STOPPING --> STOPPED
+
+
+STARTING --> FAILED
+STOPPING --> FAILED
+STOPPING --> FAILED
+
+
+@enduml

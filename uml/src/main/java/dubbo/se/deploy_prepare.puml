@@ -1,0 +1,154 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+-> DubboConfigApplicationListener : onApplicationEvent
+note right
+early事件 DubboConfigInitEvent
+由ReferenceAnnotationBeanPostProcessor#postProcessBeanFactory 发送
+end note
+DubboConfigApplicationListener -> ModuleDeployer ++: prepare
+note right
+# 将本地environment中map形式的properties,转成对应的配置属性
+    ApplicationConfig,ConfigCenterConfig 等等
+# 根据本地配置抓取配置中心的属性
+# 准备元数据中心
+end note
+    ModuleDeployer -> ApplicationDeployer ++ : initialize
+        ApplicationDeployer -> ApplicationDeployer : registerShutdownHook
+        ApplicationDeployer -> ApplicationDeployer ++ #skyblue : startConfigCenter
+            ApplicationDeployer -> ConfigManager : loadConfigsOfTypeFromProps
+            note right
+            loadConfigsOfTypeFromProps(ApplicationConfig.class)
+            loadConfigsOfTypeFromProps(ConfigCenterConfig.class)
+            loadConfigsOfTypeFromProps(RegistryConfig.class)
+            ----
+            # 从环境中加载属性,转成对应的属性对象,并缓存
+                属性缓存
+                AbstractConfigManager#configsCache
+                dubbo.application.* 对应 ApplicationConfig
+            属性去掉前缀就是类的属性
+                dubbo.application.name 对应 ApplicationConfig.name
+            --ApplicationConfig#refresh--
+            dubbo.labels 逗号分割会放入parameters中,2个一对
+            dubbo.env.keys 逗号分割,从properties中获取后放入parameters
+            ApplicationConfig#appendEnvironmentProperties
+            end note
+
+            ApplicationDeployer -> ConfigManager : useRegistryAsConfigCenterIfNecessary
+            note right
+            没有配置配置中心(没有属性前缀dubbo.config-center的配置),
+            将注册中心当作配置中心,将RegistryConfig转成ConfigCenterConfig
+            end note
+
+                ApplicationDeployer -> ApplicationDeployer ++ #tan : prepareEnvironment
+                    note right
+                    ==根据 dataId,group从配置中心加载配置==
+                    配置类 ConfigCenterConfig
+                    #逻辑
+                    ## 根据url构造 DynamicConfiguration
+                    ## 根据 dataId,group 获取配置内容,并缓存
+                    # 全局配置,多个dubbo应用共享(同一个group下,多个provider,多个consumer)
+                    dataId=ConfigCenterConfig#configFile
+                    group=ConfigCenterConfig#group
+                    缓存 Environment#externalConfiguration
+                    # app配置,当前app使用(同一个group下,唯一一个dubbo应用)
+                    dataId=ConfigCenterConfig#appConfigFile
+                    dataId=ConfigCenterConfig#configFile(appConfigFile为null则用这个)
+                    group=ApplicationConfig#name(dubbo.application.name或spring.application.name)
+                    应用未配置dubbo.config-center.*属性则会构造默认的configCenter,appConfigFile为null
+                    缓存 Environment#appExternalConfiguration
+                    ----
+                    config使用前会有默认值赋值 ConfigCenterConfig#checkDefault
+                    dataId=dubbo.properties  group=dubbo
+                    ----
+
+                    end note
+                    ApplicationDeployer -> DynamicConfiguration : getProperties
+                    note right
+                    NacosDynamicConfiguration
+                    end note
+
+                    DynamicConfiguration -> ConfigService : getConfig
+                    note right
+                    从配置中心加载属性,发送远程请求
+                    NacosDynamicConfiguration
+                    nacos dubbo.properties
+                    end note
+                deactivate
+        deactivate
+        ApplicationDeployer -> ApplicationDeployer : loadApplicationConfigs
+        note right
+            loadConfigsOfTypeFromProps(ApplicationConfig.class);
+            // load dubbo.monitors.xxx
+            loadConfigsOfTypeFromProps(MonitorConfig.class);
+            // load dubbo.metrics.xxx
+            loadConfigsOfTypeFromProps(MetricsConfig.class);
+            // load multiple config types:
+            // load dubbo.protocols.xxx
+            loadConfigsOfTypeFromProps(ProtocolConfig.class);
+            // load dubbo.registries.xxx
+            loadConfigsOfTypeFromProps(RegistryConfig.class);
+            // load dubbo.metadata-report.xxx
+            loadConfigsOfTypeFromProps(MetadataReportConfig.class);
+        end note
+        ApplicationDeployer -> ApplicationDeployer : initModuleDeployers
+        note right
+        调用module.initialize方法
+        end note
+        ApplicationDeployer -> ApplicationDeployer : startMetadataCenter
+        note right
+        根据protocol获取MetadataReportFactory的扩展
+        判断是否支持将注册中心当做元数据中心
+        将RegistryConfig转成MetadataReportConfig
+        根据MetadataReportConfig配置初始MetadataReportInstance对象
+        使用MetadataReportFactory构造MetadataReport并缓存
+        缓存 MetadataReportInstance#metadataReports
+        end note
+    deactivate
+    ModuleDeployer -> ModuleDeployer  : initialize
+    note right
+    ApplicationDeployer的initialize已调用
+    --从环境中加载属性--
+    // load dubbo.providers.xxx
+    loadConfigsOfTypeFromProps(ProviderConfig.class);
+    // load dubbo.consumers.xxx
+    loadConfigsOfTypeFromProps(ConsumerConfig.class);
+    // load dubbo.modules.xxx
+    loadConfigsOfTypeFromProps(ModuleConfig.class);
+    --从ModuleConfig中获取相关设置--
+    exportAsync
+    referAsync
+    background
+    end note
+deactivate
+
+
+
+
+@enduml
+
+@startuml
+autonumber
+
+DynamicConfiguration -> ConfigService : getConfig
+ConfigService -> ClientWorker : getServerConfig
+ClientWorker -> ConfigTransportClient ++ : queryConfig
+    ConfigTransportClient -> RpcClientFactory : createClient,\n创建一个RpcClient
+        ConfigTransportClient -> ConfigTransportClient ++ : requestProxy
+            ConfigTransportClient -> RpcClient : request
+            deactivate
+deactivate
+
+
+
+
+note over ConfigTransportClient
+ConfigRpcTransportClient
+end note
+
+
+
+
+@enduml

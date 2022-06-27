@@ -103,7 +103,7 @@ card "BeanDefinition回调处理" #tan{
     # 注册provider接口实现的beanDefinition
     使用scanPackages作为扫描路径,@DubboService作为扫描过滤条件
     扫描并注册dubbo provider的beanDefinition
-    # 注册dubbo ServiceBean的beanDefinition
+    # 注册dubbo ServiceBean(beanClass)的beanDefinition
     ## serviceBeanName生成规则:以接口名:version:group生成dubbo的service名,
         version、group为空时,接口名即serviceBeanName
     ## 接口provider查找规则即优先级:
@@ -113,6 +113,9 @@ card "BeanDefinition回调处理" #tan{
     ## 一个接口实现类对应一个dubbo的ServiceBean,接口实现类名不可能重复
     ## 设置serviceBean属性时,ref指向实际的实现类beanDefinition
         ServiceConfigBase#ref=实现类实例
+    ## @dubboService注解属性处理
+       将部分注解属性放到 AbstractBeanDefinition#propertyValues
+       有些属性不会, provider,monitor...
     end note
 
     :getBean BeanFactoryPostProcessor;
