@@ -60,37 +60,145 @@ DubboDeployApplicationListener -> ModuleDeployer ++ : start
             note right
             将providerConfig和环境属性赋值到 ServiceConfigBase 对应的属性中
             end note
-            ModuleDeployer -> ServiceConfigBase : export
-            note right
+            ModuleDeployer -> ServiceConfigBase ++ #skyblue : export
+            note left
             ServiceConfigBase即ServiceBean
             ServiceAnnotationPostProcessor扫描@DubboService注册的beanDefinition
             ServiceBean#afterPropertiesSet 调用时添加到 ModuleConfigManager#configsCache
             exportAsync=true ,放到线程池中执行
             export后添加到 DefaultModuleDeployer#exportedServices
             ----
-            # ServiceConfig#serviceListeners 添加ServiceListener扩展实例
-            # AbstractInterfaceConfig#serviceMetadata 赋值
-            # ModuleServiceRepository#services 注册 ServiceDescriptor
-            # ServiceConfig#providerModel构造
-            ## ModuleServiceRepository#providers 注册 ProviderModel
-            ## frameworkServiceRepository#providers 注册 ProviderModel
-            # 加载注册中心url
-            ## 获取服务注册模式 dubbo.application.register-mode
-                未配置默认为all
-                RegistryConstants 配置值
-                    DEFAULT_REGISTER_MODE_INTERFACE = "interface";
-                    DEFAULT_REGISTER_MODE_INSTANCE = "instance";
-                    DEFAULT_REGISTER_MODE_ALL = "all";
-            ### 优先从配置中心获取
-                // RegistryConstants#DUBBO_REGISTER_MODE_DEFAULT_KEY
-                dataId=dubbo.application.register-mode
-                //DynamicConfiguration#DEFAULT_GROUP
-                group=dubbo
-            ### 从环境变量中获取
-                key= dubbo.application.register-mode
-            # 使用 FrameworkStatusReporter扩展report状态
-
             end note
+
+                ServiceConfigBase -> ServiceConfigBase : refresh
+                ServiceConfigBase -> ServiceConfigBase : init
+                note right
+                # ServiceConfig#serviceListeners 添加ServiceListener扩展实例
+                # AbstractInterfaceConfig#serviceMetadata 赋值
+                end note
+                group delay export
+                    ServiceConfigBase -> ServiceConfigBase : doDelayExport
+                end
+                group export
+                    ServiceConfigBase -> ServiceConfigBase ++ #tan : doExportUrls
+
+                        ServiceConfigBase -> ModuleServiceRepository : registerService
+                        note right
+                        ModuleServiceRepository
+                        ModuleServiceRepository#services 注册服务接口的 ServiceDescriptor
+                        end note
+                        ServiceConfigBase -> ProviderModel : new
+                        ServiceConfigBase -> ModuleServiceRepository : registerProvider
+                        note right
+                        ProviderModel
+                        # ModuleServiceRepository#providers 注册 ProviderModel
+                        # frameworkServiceRepository#providers 注册 ProviderModel
+                        end note
+
+                        ServiceConfigBase -> ConfigValidationUtils : loadRegistries
+                        note right
+                        ConfigValidationUtils
+                        # 加载注册中心url
+                        ## 获取服务注册模式 dubbo.application.register-mode
+                        未配置默认为all
+                        RegistryConstants 配置值
+                        DEFAULT_REGISTER_MODE_INTERFACE = "interface";
+                        DEFAULT_REGISTER_MODE_INSTANCE = "instance";
+                        DEFAULT_REGISTER_MODE_ALL = "all";
+                        ### 优先从配置中心获取
+                        // RegistryConstants#DUBBO_REGISTER_MODE_DEFAULT_KEY
+                        dataId=dubbo.application.register-mode
+                        //DynamicConfiguration#DEFAULT_GROUP
+                        group=dubbo
+                        ### 从环境变量中获取
+                        key= dubbo.application.register-mode
+                        # 使用 FrameworkStatusReporter扩展report状态
+                        end note
+
+                        ServiceConfigBase -> ServiceConfigBase ++ : doExportUrlsFor1Protocol
+                            ServiceConfigBase -> ServiceConfigBase  : buildUrl
+                            note right
+                            获取注册ip和注册port,构造url
+                            使用扩展ConfiguratorFactory 配置url参数
+                            ---
+                            # 获取绑定ip,若空走下一步获取
+                            ## 从环境变量中获取, 以下是key
+                            ### DUBBO_DUBBO_IP_TO_BIND
+                            ### DUBBO_IP_TO_BIND
+                            ## ProtocolConfig 获取ip
+                            ## ProviderConfig 获取Ip
+                            ## 当前机器的IP
+                            # 获取注册IP地址,若空则用绑定IP
+                            ## 从环境变量中获取, 以下是key
+                            ### DUBBO_DUBBO_IP_TO_REGISTRY
+                            ### DUBBO_IP_TO_REGISTRY
+
+                            # 获取绑定port,
+                            ## 若空走下一步获取
+                            ### 从环境变量中获取, 以下是key
+                            #### DUBBO_DUBBO_PORT_TO_BIND
+                            #### DUBBO_PORT_TO_BIND
+                            ### ProtocolConfig 获取port
+                            ### ProviderConfig 获取port
+                            ### 加载protocol扩展获取port,getDefaultPort
+                            ## 若从ProtocolConfig,ProviderConfig 获取的Port=-1
+                               且protocol中获取的port并未被绑定,则返回protocol的端口
+                               否则以protocol开始查找未被使用的端口
+                            # 获取注册Port,若空则用绑定port
+                            ## 从环境变量中获取, 以下是key
+                            ### DUBBO_DUBBO_PORT_TO_REGISTRY
+                            ### DUBBO_PORT_TO_REGISTRY
+                            end note
+
+                        ServiceConfigBase -> ServiceConfigBase ++ : exportUrl
+                        note right
+                        根据 dubbo.provider.scope
+                        暴露远程或者本地,未配置都暴露
+                        本地:不会注册到注册中心
+                        end note
+                            ServiceConfigBase -> ProxyFactory : getInvoker
+                            note right
+                            ProxyFactory
+                            创建ProxyFactory$Adaptive根据参数选择ProxyFactory扩展
+                            并使用wrap对factory增强
+
+                            end note
+                            ServiceConfigBase -> Protocol : export
+                            note right
+                            Protocol
+                            创建Protocol$Adaptive根据参数选择Protocol扩展
+                            并使用wrap对Protocol增强
+                            local:
+                                ProtocolSerializationWrapper
+                                ProtocolFilterWrapper
+                                ProtocolListenerWrapper
+                                QosProtocolWrapper
+                                InjvmProtocol
+                            remote:
+                                ProtocolSerializationWrapper
+                                ProtocolFilterWrapper
+                                ProtocolListenerWrapper
+                                QosProtocolWrapper
+                                RegistryProtocol
+
+                            todo 配置
+                            AbstractConfiguratorListener#initWith
+                            是否监听配置中心配置修改
+                                enable-configuration-listen
+                            dataId=（dubbo.application.name/spring.application.name).configurators
+                                nacos-provider.configurators
+                            group=dubbo
+                            ----
+                            向注册中心暴露 provider的url
+
+
+                            end note
+                        deactivate
+                        ServiceConfigBase -> ServiceConfigBase : exported
+                    deactivate
+                end
+            deactivate
+
         end
 
     deactivate
