@@ -131,7 +131,7 @@ package aop_beanDefinition_object_map #tan {
         end note
     }
 
-'aop:config=>advisor
+'spring.aop:config=>advisor
     package aop:config=>advisor {
         map "advisorDefinition2.PropertyValues" as advisor2PropertyValues {
             adviceBeanName => new RuntimeBeanNameReference(advice-ref)
@@ -144,7 +144,7 @@ package aop_beanDefinition_object_map #tan {
         }
     }
 
-'aop:declare-parents
+'spring.aop:declare-parents
     package aop:declare-parents {
         map "declareDefinition.ConstructorArgumentValues" as declareConstructorArgumentValues {
             Map<Integer, ValueHolder> indexedArgumentValues => 下面是map内容

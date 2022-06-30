@@ -1,0 +1,198 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+autonumber
+
+-> AbstractApplicationContext ++ : refresh()
+    note right
+    # 第一次调用refresh
+    # 调用close,再调用refresh
+    # 重复调用refresh(未调用close)
+    end note
+    AbstractApplicationContext -> AbstractApplicationContext : prepareRefresh()
+    note right
+    # 初始化propertySources,主要是web环境 AbstractRefreshableWebApplicationContext
+    ## 第一次调用refresh(调用close)
+        将refresh方法调用之前调用addApplicationListener方法新增的listener当做early
+        将 applicationListeners 赋值给 earlyApplicationListeners
+    ## 重复调用refresh(未调用close) , 调用close,再调用refresh
+        使用earlyApplicationListeners覆盖 applicationListeners
+    # earlyApplicationListeners 无对外访问方法
+    # 初始化 earlyApplicationEvents
+
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: obtainFreshBeanFactory()
+    note right
+    # refresh类型context
+        AbstractRefreshableApplicationContext 的子类
+    ## 销毁beanFactory中的bean,将beanFactory赋值为null
+    ## 构造beanFactory
+    ### beanFactory加载并注册BeanDefinition
+    ## 返回注册过BeanDefinition的BeanFactory
+
+    # 非refresh类型context
+        GenericApplicationContext 及其子类
+        spring boot
+            **ServletWebServerApplicationContext**
+        返回构造函数中实例化的对象(未注册过BeanDefinition)
+
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: prepareBeanFactory()
+    note right
+    # 设置 BeanFactory 类加载器
+    # 添加 ResourceEditorRegistrar
+        非boot,同时初始化 Environment
+        boot
+    # 添加 AwarePost 回调
+        ApplicationContextAwareProcessor
+        在Bean创建时,aware接口的调用
+        context是自动refresh,第一个post
+        context不是自动refresh,可以手动新增,可能再后面
+            自动refresh设置为false
+            GenericApplicationContext 及其子类
+                boot应用
+        BeanPostProcessor也是通过getBean方式构造的
+        若要确定PostProcessor实现的Aware接口被调用
+        要确保在 ApplicationContextAwareProcessor后面
+        比如boot的 ApplicationContextInitializer添加BeanPost
+        就在ApplicationContextAwareProcessor之前,导致Aware无法调用
+    # 配置xml 模式下自动装配(ignoreDependencyInterface),忽略的Aware接口,
+        AbstractBeanDefinition#autowireMode 不是none才会有用
+        AbstractBeanDefinition#autowireMode 只有在xml模式下才可以配置
+        但是在BeanFactoryPost中也能修改注解生成的BeanDefinition
+        从而影响注入行为
+    # 配置自动装配,指定类型需要对应的bean对象
+        BeanFactory
+        ResourceLoader
+        ApplicationEventPublisher
+        ApplicationContext
+    # 添加ListenerPost回调 ApplicationListenerDetector
+    # 添加 织入相关Post
+        todo
+    # 注册 singleton bean
+        环境相关
+
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: postProcessBeanFactory()
+    note right
+    # 默认空处理
+    # 主要web相关子类覆写
+        注册scope,
+        ignoreDependencyInterface
+     等等
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: invokeBeanFactoryPostProcessors()
+    note right
+    # BeanDefinition 2个post回调的构造与调用
+    ## BeanDefinitionRegistry
+    ## BeanFactoryPostProcessor
+    # 相关逻辑
+    ## 从 context.beanFactoryPostProcessors(手动调用context.addBeanFactoryPostProcessor添加的)
+        中筛选出 BeanDefinitionRegistryPostProcessor,忽略PriorityOrdered,Ordered接口,以添加顺序调用 postProcessBeanDefinitionRegistry
+    ## 从 beanDefinition 和 manualSingleton 中筛选 BeanDefinitionRegistryPostProcessor,并调用
+    ### 注意点
+    #### 调用postProcessBeanDefinitionRegistry方法时,才会通过getBean方法,创建Bean,筛序时不调用getBean
+                不使用getBean是为了,避免直接实例化导致执行顺序有问题
+    #### 通过getBeanNamesForType方法,获取processor的name,根据name与 beanDefinition 判断是否声明某接口
+    #### 因为 postProcessBeanDefinitionRegistry 的执行,有可能会新增 BeanDefinitionRegistryPostProcessor 的 beanDefinition
+                所以每次筛选都是重新调用 getBeanNamesForType方法获取 BeanDefinitionRegistryPostProcessor的name
+    ### 逻辑调用
+    #### 筛选出声明 PriorityOrdered 接口的,并排序,调用  postProcessBeanDefinitionRegistry
+    #### 筛选出声明 Ordered 接口的,并排序,调用  postProcessBeanDefinitionRegistry
+    #### 筛选出没有声明 Ordered 相关接口的,调用 postProcessBeanDefinitionRegistry
+    ## 调用 BeanDefinitionRegistryPostProcessor的 postProcessBeanFactory
+    ## 调用 beanFactoryPostProcessors中,非BeanDefinitionRegistryPostProcessor的 postProcessBeanFactory
+    ## 筛选出剩余的 BeanFactoryPostProcessor,并过滤掉已经调用过的(BeanDefinitionRegistryPostProcessor)
+    ### 筛选出声明 PriorityOrdered 接口的,并排序,调用  postProcessBeanFactory
+    ### 筛选出声明 Ordered 接口的,并排序,调用  postProcessBeanFactory
+    ### 没有声明 Ordered 相关接口的,调用 postProcessBeanFactory
+
+    注意:
+    对BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry的调用会保证,
+    此方法新添加的BeanDefinitionRegistryPostProcessor和BeanFactoryPostProcessor的相关方法也被调用,
+    迭代保证.
+    postProcessBeanDefinitionRegistry中的参数是BeanDefinitionRegistry,提供 registerBeanDefinition
+    removeBeanDefinition,getBeanDefinition,可以新增,删除,修改 BeanDefinition
+
+    对BeanFactoryPostProcessor.postProcessBeanFactory中新增的BeanFactoryPostProcessor不会执行,
+    postProcessBeanFactory中的参数是 ConfigurableListableBeanFactory 只提供getBeanDefinition,
+    只能修改 BeanDefinition.虽然实例是DefaultListableBeanFactory也能新增
+    ---
+    织入相关处理 LoadTimeWeaverAwareProcessor
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: registerBeanPostProcessors()
+    note right
+    将BeanDefinition中的BeanPostProcessor 创建并添加到beanFactory中
+    AbstractBeanFactory#addBeanPostProcessors
+    # 筛选出实现 PriorityOrdered 的,调用getBean创建,并添加
+    # 筛选出实现 Ordered 的,调用getBean创建,并添加
+    # 剩余的,调用getBean创建,并添加
+    # 添加ListenerPost回调 ApplicationListenerDetector
+
+    此时添加的Post 在调用registerBeanDefinition方法前
+    调用addBeanPostProcessors 添加的Post后面
+    并且之前的post忽略 PriorityOrdered和Ordered
+
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: initMessageSource()
+    note right
+    国际化处理 即MessageSource的构造与赋值
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: initApplicationEventMulticaster()
+    note right
+    注册并赋值事件广播器 ApplicationEventMulticaster
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: onRefresh()
+    note right
+    默认空
+    web子类做一些初始化
+        ServletWebServerApplicationContext 创建web容器
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: registerListeners()
+    note right
+    # 将application中事件监听器的注册到广播器
+        在广播器初始化之前注册的监听器存储在 AbstractApplicationContext#applicationListeners
+    # 收集BeanDefinition中的listener名称
+    # 发布early事件,然后清空early (dubbo)
+        在registerListeners方法调用前发布的事件 都是early事件
+        比如 beanDefinition的post回调方法发布的事件,
+        都会将事件存储在 AbstractApplicationContext#earlyApplicationEvents
+        再发布的时候才getBean的方式创建listener, 为何要这么做？
+    end note
+
+    AbstractApplicationContext -> AbstractApplicationContext: finishBeanFactoryInitialization()
+    note right
+    # ConversionService 赋值
+    # LoadTimeWeaverAware getBean方式创建
+    # tempClassLoader 设置为null
+    # 冻结BeanDefinition配置标识置为true
+    # 提前初始化非lazy的单例bean
+    # 调用非lazy初始化回调 , SmartInitializingSingleton#afterSingletonsInstantiated
+        从之前初始化的单例中,筛选出 SmartInitializingSingleton 子类
+        调用回调方法 afterSingletonsInstantiated
+    ----
+    缓存？
+    end note
+    AbstractApplicationContext -> AbstractApplicationContext: finishRefresh()
+    note right
+    # 清除 resourceCaches 缓存
+    # 注册Lifecycle处理回调, DefaultLifecycleProcessor
+    # 调用 LifecycleProcessor的 onRefresh方法
+    # 发布 ContextRefreshedEvent 事件
+    end note
+
+
+deactivate
+
+
+
+@enduml
