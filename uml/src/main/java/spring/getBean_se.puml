@@ -1,0 +1,104 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+autonumber
+
+-> AbstractApplicationContext : getBean
+
+AbstractApplicationContext -> ConfigurableListableBeanFactory : getBean(Class<T> requiredType)
+    ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory ++ #tan: resolveNamedBean
+    note right
+    # 根据type 查找 beanName
+    # 根据 beanName,返回bean
+    NamedBeanHolder
+    end note
+        ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory ++ : doGetBean(name, requiredType, args, false)
+            ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : transformedBeanName
+            note right
+            # 如果beanName是factoryBean beanName, 移除factoryBean name 的前缀 &
+            # 如果beanName是别名则从 SimpleAliasRegistry#aliasMap 中返回factory中注册beanDefinition的beanName
+            end note
+
+            ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : Object getSingleton(String beanName, boolean allowEarlyReference)
+            note left
+            # 从 singletonObjects 返回bean
+            # 若bean不存在,且正在创建(循环依赖、多线程)
+               singletonObjects返回null, singletonsCurrentlyInCreation 包含当前beanName
+            # 若 earlySingletonObjects 中也不存在
+                多线程还未走到 xxx
+            # 加锁,重新检查上一步
+            # 从singletonFactories 中返回 ObjectFactory,从 ObjectFactory 中返回
+            并放入 earlySingletonObjects 中
+            end note
+            ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : getMergedLocalBeanDefinition
+            note right
+            # 对beanDefinition进行拷贝,并返回
+            end note
+
+            ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : 显示依赖处理(AbstractBeanDefinition#getDependsOn)
+            note right
+            # 显示依赖检查
+            # 保存依赖关系
+            ## DefaultSingletonBeanRegistry#dependentBeanMap
+                key: 当前beanName , value : 当前bean依赖的bean列表
+            ## DefaultSingletonBeanRegistry#dependenciesForBeanMap
+                key: 当前bean依赖的beanName , value : 依赖此bean的bean列表
+            # getBean 方式,创建依赖bean
+            end note
+            group 根据scope 创建bean
+                group singleton
+                    ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : getSingleton(String beanName, ObjectFactory<?> singletonFactory)
+                    note left
+                    createBean 被封装到 ObjectFactory中
+                    ----
+                    # singletonObjects 加锁
+                    # 从 singletonObjects 获取
+                    # DefaultSingletonBeanRegistry#singletonsCurrentlyInCreation 加入create标识即 beanName
+                        如果已经有标识抛出异常
+                    # singletonFactory.getObject() 返回bean
+                    # DefaultSingletonBeanRegistry#singletonsCurrentlyInCreation 移除create标识即 beanName
+                    # 缓存处理
+                        singletonObjects,key : beanName ,value: bean实例
+                        registeredSingletons ,添加beanName
+                        singletonFactories,移除 ObjectFactory
+                        earlySingletonObjects,移除不完整BeanName
+                    end note
+                end
+                group Prototype
+                    ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : 创建 Prototype bean
+                    note right
+                    # AbstractBeanFactory#prototypesCurrentlyInCreation 标识正在创建的beanName
+                    # 调用 createBean 创建bean
+                    # AbstractBeanFactory#prototypesCurrentlyInCreation 移除标识
+                    end note
+                end
+                group 其他scope
+                    ConfigurableListableBeanFactory -> Scope : get(String name, ObjectFactory<?> objectFactory)
+                    note right
+                    # 将 createBean 方法封装成 ObjectFactory
+                    # AbstractBeanFactory#prototypesCurrentlyInCreation 标识正在创建的beanName
+                    # Scope.get 逻辑
+                    # 调用 ObjectFactory.get 创建bean
+                    # Scope.get 逻辑
+                    # AbstractBeanFactory#prototypesCurrentlyInCreation 移除标识
+                    ---
+                    RequestScope
+                    SessionScope
+                    end note
+                end
+            end
+            ConfigurableListableBeanFactory -> ConfigurableListableBeanFactory : getObjectForBeanInstance
+            note right
+            # 如果beanName不是factoryBean,但是bean是factoryBean,调用factoryBean.getObject 返回bean
+            # 如果beanName是factoryBean ,直接返回bean
+
+            end note
+        deactivate
+    deactivate
+
+
+
+
+
+
+@enduml

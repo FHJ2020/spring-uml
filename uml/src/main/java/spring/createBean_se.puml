@@ -1,0 +1,94 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+autonumber
+
+-> AbstractAutowireCapableBeanFactory ++ : createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+
+    AbstractAutowireCapableBeanFactory -> AbstractAutowireCapableBeanFactory : resolveBeanClass
+    note right
+    解析 AbstractBeanDefinition#beanClass
+    # 若是class类型直接返回
+    # 若是字符串,使用classLoad加载,返回class
+        并将beanClass设置为class
+    ---
+    todo
+    ConfigurationClassPostProcessor#enhanceConfigurationClasses
+
+    end note
+
+
+    AbstractAutowireCapableBeanFactory -> RootBeanDefinition : prepareMethodOverrides
+    note right
+    @Lookup
+    <lookup-method name="" bean=""  />
+    <replaced-method name="" replacer="" />
+    end note
+
+
+        AbstractAutowireCapableBeanFactory -> AbstractAutowireCapableBeanFactory ++ #tan : resolveBeforeInstantiation
+        note right
+        # RootBeanDefinition#beforeInstantiationResolved 默认空
+        # InstantiationAwareBeanPostProcessor
+        end note
+
+            AbstractAutowireCapableBeanFactory -> InstantiationAwareBeanPostProcessor : postProcessBeforeInstantiation
+            note right
+            构造函数拦截回调,多个回调只有第一个会起作用
+            当postProcessBeforeInstantiation  返回一个 bean实例时
+            bean的后续初始化只有 postProcessAfterInitialization 会执行
+            init-method,@PostConstruct,InitializingBean 都不会执行
+            ---
+            aop
+            AbstractAutoProxyCreator#postProcessBeforeInstantiation
+            返回代理对象
+            end note
+            AbstractAutowireCapableBeanFactory -> BeanPostProcessor : postProcessAfterInitialization
+            note right
+            对返回的bean,进行额外的处理
+            AbstractAutoProxyCreator#postProcessAfterInitialization
+            end note
+            BeanPostProcessor --> AbstractAutowireCapableBeanFactory : postProcessAfterInitialization 返回不为null
+        deactivate
+
+    AbstractAutowireCapableBeanFactory -> AbstractAutowireCapableBeanFactory ++ #skyblue : doCreateBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+        group Supplier
+            AbstractAutowireCapableBeanFactory -> Supplier  : get()
+            note right
+            AbstractBeanDefinition#getInstanceSupplier
+            使用BeanWrapper进行包装,注册属性转换器
+            end note
+            Supplier --> AbstractAutowireCapableBeanFactory : 返回 BeanWrapper
+        end
+        group factoryMethod
+            AbstractAutowireCapableBeanFactory -> ConstructorResolver : instantiateUsingFactoryMethod
+            note right
+            # 2种类型
+            ## 工厂方法为spring 管理的bean的实例方法 @Bean
+            ## 工厂为静态方法
+            # 存在唯一的工厂方法 ,反射调用方法,返回bean
+                RootBeanDefinition#isFactoryMethodUnique=true
+                并且 RootBeanDefinition#factoryMethodToIntrospect(Method类型) 不为空
+            # 存在多个工厂方法,方法名字匹配,参数匹配,反射调用方法返回bean
+                方法名字匹配 (AbstractBeanDefinition#factoryMethodName) 和参数匹配
+            # BeanWrapper 包装
+            end note
+            ConstructorResolver --> AbstractAutowireCapableBeanFactory : 返回 BeanWrapper
+        end
+        group 构造函数
+            AbstractAutowireCapableBeanFactory -> ConstructorResolver : autowireConstructor
+            note right
+                # 收集构造函数
+                ## 解析到的构造函数
+                ## 回调返回的构造函数 SmartInstantiationAwareBeanPostProcessor#determineCandidateConstructors
+                ## 从多个构造函数中匹配
+                # 反射调用
+                # BeanWrapper 包装
+            end note
+        end
+
+
+
+    deactivate
+deactivate
+@enduml

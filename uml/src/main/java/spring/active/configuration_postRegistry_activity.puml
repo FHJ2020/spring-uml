@@ -45,14 +45,18 @@ start
         note
         使用cglib2个拦截器
         **BeanFactoryAwareMethodInterceptor**
-        代理类实现 EnhancedConfiguration 接口
         设置beanFactory
+        调用代理类的 setBeanFactory 接口
+        代理类实现EnhancedConfiguration 接口 (标记接口,
+        继承自 BeanFactoryAware 接口,
+        拦截器中设置beanFactory)
+
         ====
         **BeanMethodInterceptor**
         @Bean上无@Scope
         factory调用Configuration类的@Bean方法获得实例,
         并进行post回调处理,单例还会缓存
-        ----
+
         @Bean上有@Scope
         # 使用ScopedProxyFactoryBean对beanMethod返回的class进行代理,即创建代理类
         被代理类还是由@Bean方法返回,即调用config实例的方法(full或者Lite)

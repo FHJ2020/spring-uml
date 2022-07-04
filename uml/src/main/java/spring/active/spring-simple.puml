@@ -184,12 +184,16 @@ card "getSingleton" {
     :通过 ObjectFactory 返回不完整对象
     SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
     ;
+    note
+    AbstractAutoProxyCreator
+    end note
 }
 
 card "Instantiation Before" #skyblue    {
     :<color:Purple> InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation;
     note
     **annotation callback**
+    短路拦截
     end note
 
 }
