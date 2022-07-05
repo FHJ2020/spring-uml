@@ -96,7 +96,7 @@ else (no)
             :applyBeanPostProcessorsAfterInitialization;
         }
         :earlySingletonExposure handle;
-        card #LightGray registerDisposableBeanIfNecessary{
+        card #LightGray registerDisposableBeanIfNecessary {
             if (mbd.isSingleton()?) is (yes) then
              :SingletonBeanRegistry.registerDisposableBean(beanName,
              new DisposableBeanAdapter(

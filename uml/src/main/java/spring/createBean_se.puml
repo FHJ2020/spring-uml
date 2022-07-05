@@ -34,6 +34,7 @@ autonumber
 
             AbstractAutowireCapableBeanFactory -> InstantiationAwareBeanPostProcessor : postProcessBeforeInstantiation
             note right
+            <color:red> 短路拦截
             构造函数拦截回调,多个回调只有第一个会起作用
             当postProcessBeforeInstantiation  返回一个 bean实例时
             bean的后续初始化只有 postProcessAfterInitialization 会执行

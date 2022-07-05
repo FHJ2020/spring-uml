@@ -181,10 +181,12 @@ card "BeanDefinition回调处理" #tan{
 
 
 card "getSingleton" {
-    :通过 ObjectFactory 返回不完整对象
-    SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
+    :通过 ObjectFactory.getObject 返回未初始化或者被代理的对象对象
     ;
     note
+    # 返回未初始化对象
+    # SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
+        对未初始化的对象拦截,比如代理
     AbstractAutoProxyCreator
     end note
 }

@@ -83,7 +83,7 @@ package aop_beanDefinition_object_map #tan {
             1_pointcut_ref =>
             2 =>
         }
-        adviceConstructorArgumentValues::0 --> methodDefinition
+        adviceConstructorArgumentValues::0 -[#red]-> methodDefinition
         adviceConstructorArgumentValues::2 --> aspectFactoryDef
         adviceConstructorArgumentValues::1_pointcut --> pointcutDefinition
         adviceConstructorArgumentValues::1_pointcut_ref --> RuntimeBeanReference

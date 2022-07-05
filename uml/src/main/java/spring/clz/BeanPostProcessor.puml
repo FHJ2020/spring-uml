@@ -186,6 +186,8 @@ namespace abstractApplicationContext_default_BeanPostProcessor{
         @Resource、@Resource上的@Lazy
         **postProcessMergedBeanDefinition**
         #将上面相关注解解析后添加到rbd的externallyManagedXXX字段中
+        ## @PreDestroy -> RootBeanDefinition#externallyManagedInitMethods
+        ## @PostConstruct -> RootBeanDefinition#externallyManagedDestroyMethods
         #将@Resource解析后缓存到processor.injectionMetadataCache字段中
         **postProcessProperties**
         将injectionMetadataCache中的依赖注入
