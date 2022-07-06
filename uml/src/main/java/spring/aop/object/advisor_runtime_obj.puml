@@ -1,0 +1,55 @@
+@startuml
+'https://plantuml.com/object-diagram
+
+note as n1
+
+**xml配置**
+<bean name="beforeInterceptor" class="demo.proxy.BeforeInterceptor"/>
+<aop:config>
+    <aop:aspect ref="beforeInterceptor">
+        <aop:declare-parents types-matching="demo.proxy.*"
+                             implement-interface="demo.proxy.TestIntroductions"
+        default-impl="demo.proxy.TestIntroductionsImpl"/>
+        <aop:before method="before" pointcut="execution(* demo.proxy.CompanyService.*(..))"/>
+        <aop:after method="after" pointcut="execution(* demo.proxy.CompanyService.*(..))"/>
+    </aop:aspect>
+</aop:config>
+
+end note
+map AspectJMethodBeforeAdvice{
+    aspectName => beforeInterceptor
+    declaringClass => BeforeInterceptor
+    methodName => before
+}
+map ComposablePointcut1 {
+    classFilter =>
+    methodMatcher =>
+}
+
+map AspectJPointcutAdvisor1 {
+    advice =>
+    pointCut =>
+}
+AspectJPointcutAdvisor1::advice --> AspectJMethodBeforeAdvice
+AspectJPointcutAdvisor1::pointCut --> ComposablePointcut1
+
+
+map AspectJAfterAdvice{
+    aspectName => beforeInterceptor
+    declaringClass => BeforeInterceptor
+    methodName => after
+}
+map ComposablePointcut2 {
+    classFilter =>
+    methodMatcher =>
+}
+
+map AspectJPointcutAdvisor2{
+    advice =>
+    pointCut =>
+}
+AspectJPointcutAdvisor2::advice --> AspectJAfterAdvice
+AspectJPointcutAdvisor2::pointCut --> ComposablePointcut2
+
+
+@enduml

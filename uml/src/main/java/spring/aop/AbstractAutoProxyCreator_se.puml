@@ -1,0 +1,74 @@
+@startuml
+'https://plantuml.com/use-case-diagram
+
+
+-> AbstractAutoProxyCreator : getEarlyBeanReference
+note right
+封装到 singletonFactories 中
+当循环引用时 返回一个代理对象
+---
+此时的bean,只调用了构造函数和 postProcessMergedBeanDefinition 回调进行处理
+其他逻辑未执行
+end note
+
+-> AbstractAutoProxyCreator : postProcessBeforeInstantiation
+note right
+收集2种不需要代理的bean,并进行缓存 AbstractAutoProxyCreator#advisedBeans
+# AOP bean
+## Advice
+## Pointcut
+## Advisor
+## AopInfrastructureBean
+# 切面逻辑载体类不进行代理
+    查找所有的advisor,判断其关联的advice, AbstractAspectJAdvice#aspectName 是否等于 beanName
+    等于则表示是切面逻辑
+
+    **如下配置**
+    beforeInterceptor 为其他切面的逻辑
+    再对其进行代理，不会进行代理
+    <bean name="beforeInterceptor" class="demo.proxy.BeforeInterceptor"/>
+    <aop:config>
+        <aop:aspect ref="interceptorForInterceptor" >
+            <aop:before method="before" pointcut="execution(* demo.proxy.BeforeInterceptor.*(..))"/>
+        </aop:aspect>
+    </aop:config>
+
+----
+**advisedBeans**bean   是否需要被代理标识
+key:beanName
+value: true 需要代理,false 不需要代理
+
+AspectJAwareAdvisorAutoProxyCreator#shouldSkip
+    从beanFactory查找所有advisor类型的beanDefinition
+
+使用advisor的pointcut对bean进行匹配,符合则创建代理对象
+
+
+
+====
+**advisedBeans**
+key:beanName
+value:被代理类的class对象
+
+end note
+
+-> AbstractAutoProxyCreator ++ : postProcessAfterInitialization
+note right
+自定义的post在 aop post前面,则方法参数里的bean 不是代理的
+---
+# 若advisedBeans中标识为false,直接返回不代理
+# 对true 进行代理
+##
+对spring 创建好的bean 进行代理
+
+end note
+
+
+AbstractAutoProxyCreator -> AbstractAdvisorAutoProxyCreator : getAdvicesAndAdvisorsForBean
+
+deactivate
+
+
+
+
+@enduml
