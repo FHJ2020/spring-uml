@@ -1,0 +1,11 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+autonumber
+
+-> proxyObject : 调用被代理对象的方法
+proxyObject -> DynamicAdvisedInterceptor : 123
+
+
+
+@enduml

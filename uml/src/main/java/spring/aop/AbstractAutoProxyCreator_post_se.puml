@@ -57,14 +57,23 @@ note right
 自定义的post在 aop post前面,则方法参数里的bean 不是代理的
 ---
 # 若advisedBeans中标识为false,直接返回不代理
-# 对true 进行代理
-##
-对spring 创建好的bean 进行代理
+# 查找所有的advisor,使用pointCut对bean匹配
+## 无匹配的advisor不进行代理
+## 有匹配的advisor进行代理
 
 end note
 
 
-AbstractAutoProxyCreator -> AbstractAdvisorAutoProxyCreator : getAdvicesAndAdvisorsForBean
+    AbstractAutoProxyCreator -> AbstractAutoProxyCreator ++: wrapIfNecessary
+
+        AbstractAutoProxyCreator -> AbstractAdvisorAutoProxyCreator : getAdvicesAndAdvisorsForBean
+
+        AbstractAutoProxyCreator -> AbstractAutoProxyCreator : createProxy
+        note right
+        [[aop_create_se.puml aop_proxy_create]]
+        end note
+    deactivate
+
 
 deactivate
 

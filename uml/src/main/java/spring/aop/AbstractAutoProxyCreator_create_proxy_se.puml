@@ -1,0 +1,88 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+AbstractAutoProxyCreator -> ProxyFactory : new
+AbstractAutoProxyCreator -> ProxyFactory : copyFrom
+note right
+AbstractAutoProxyCreator 继承自 ProxyConfig
+ProxyConfig 代理配置信息
+ProxyFactory 从 AbstractAutoProxyCreator 中拷贝代理信息
+end note
+
+AbstractAutoProxyCreator -> ProxyFactory : setProxyTargetClass
+note right
+单个bean的proxyTargetClass 会覆盖全局配置,true 覆盖 false
+end note
+
+AbstractAutoProxyCreator -> ProxyFactory : addInterface
+note right
+设置代理类需要实现的接口
+end note
+
+AbstractAutoProxyCreator -> ProxyFactory ++ : addAdvisors
+note right
+    # 添加通用拦截器,并且对其进行包装
+        AbstractAutoProxyCreator#interceptorNames
+            公共拦截器的名字
+            由spring管理的bean name
+            该bean必须是advice或advisor 的子类
+    # 添加xml配置的advisor
+    # AbstractAutoProxyCreator#applyCommonInterceptorsFirst
+      =true 则通用拦截器优先执行
+      =false 则xml拦截器优先执行
+
+
+    end note
+    AbstractAutoProxyCreator -> DefaultAdvisorAdapterRegistry : wrap
+    note right
+    对所有添加到 ProxyFactory 中的拦截器进行包装
+    # advisor 子类 不包装,因为持有的 advice 都实现了 MethodInterceptor
+    # advice 子类包装
+    ## 子类实现了 MethodInterceptor 接口, 包装成 DefaultPointcutAdvisor
+    ## 未实现 MethodInterceptor 接口,使用AdvisorAdapter 判断是否支持适配
+        支持则包装成 DefaultPointcutAdvisor
+    end note
+deactivate
+
+AbstractAutoProxyCreator -> ProxyFactory : setTargetSource
+note right
+所有被代理的bean,都使用SingletonTargetSource 包装, 包含 prototype
+prototype每次getBean都会被重新创建
+
+end note
+
+
+
+
+
+AbstractAutoProxyCreator -> ProxyFactory ++ : getProxy
+    ProxyFactory -> ProxyFactory ++ : createAopProxy()
+    ProxyFactory -> ProxyFactory  : getAopProxyFactory()
+    ProxyFactory -> DefaultAopProxyFactory ++ : createAopProxy(this)
+    note right
+    使用 ProxyFactory 的配置
+    end note
+        DefaultAopProxyFactory -> AopProxy : new
+        AopProxy --> DefaultAopProxyFactory : 返回AopProxy子类
+        note right
+        AopProxy子类 :
+        # ObjenesisCglibAopProxy (CglibAopProxy)
+        # JdkDynamicAopProxy
+        end note
+    deactivate
+    AopProxy --> ProxyFactory  : AopProxy子类
+
+
+    ProxyFactory -> AopProxy : getProxy
+    AopProxy -> ProxyFactory : 返回代理对象
+    note right
+
+    end note
+    deactivate
+deactivate
+
+
+
+@enduml
