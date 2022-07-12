@@ -1,0 +1,34 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+autonumber
+
+-> proxyObject : 调用被代理对象的方法
+proxyObject -> DynamicAdvisedInterceptor ++ : intercept
+    DynamicAdvisedInterceptor -> AdvisedSupport : getTargetSource
+    DynamicAdvisedInterceptor -> TargetSource : getTarget
+    DynamicAdvisedInterceptor -> AdvisedSupport ++ : getInterceptorsAndDynamicInterceptionAdvice
+        AdvisedSupport -> DefaultAdvisorChainFactory : getInterceptorsAndDynamicInterceptionAdvice
+
+        DefaultAdvisorChainFactory -> DefaultAdvisorAdapterRegistry : getInterceptorsAndDynamicInterceptionAdvice
+        DefaultAdvisorChainFactory -> AdvisedSupport : getAdvisors
+    deactivate
+
+    DynamicAdvisedInterceptor -> CglibMethodInvocation : new
+    DynamicAdvisedInterceptor -> CglibMethodInvocation ++ : proceed
+        group InterceptorAndDynamicMethodMatcher
+            CglibMethodInvocation -> InterceptorAndDynamicMethodMatcher
+        end
+        group MethodInterceptor
+            CglibMethodInvocation -> MethodInterceptor : invoke
+            MethodInterceptor -> MethodInvocation : proceed
+        end
+    deactivate
+
+
+
+deactivate
+
+
+
+@enduml

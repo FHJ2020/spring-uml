@@ -1,0 +1,85 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+-> CglibAopProxy : getProxy
+
+CglibAopProxy -> AdvisedSupport : getTargetClass
+CglibAopProxy -> AdvisedSupport : addInterface
+CglibAopProxy -> Enhancer : setSuperclass
+CglibAopProxy -> Enhancer : setInterfaces
+CglibAopProxy -> Enhancer : setNamingPolicy
+CglibAopProxy -> Enhancer : setStrategy
+CglibAopProxy -> CglibAopProxy ++ : getCallbacks
+    CglibAopProxy -> AdvisedSupport : isExposeProxy
+    note left
+    isExposeProxy = true
+    将代理对象设置到代理的threadLocal上
+    AopContext.setCurrentProxy
+    end note
+    CglibAopProxy -> AdvisedSupport : isFrozen
+    note left
+    默认false
+    isFrozen=true
+    当代理对象创建后,无法通过api方式新增advisor
+    即AdvisedSupport调用addAdvisor后,新增的advisor不会生效
+    end note
+
+    CglibAopProxy -> TargetSource : isStatic
+    note left
+    isStatic =true
+        TargetSource#getTarget 每次返回相同对象
+    isStatic =false
+        TargetSource#getTarget 每次返回不同对象
+    spring 中 Singleton和 Prototype 对应的 TargetSource 都是 SingletonTargetSource
+    SingletonTargetSource 和 PrototypeTargetSource 思考
+    因为外部获取对象是通过 beanFactory,
+    Prototype每次获取都会重新被beanFactory创建,每次都会被新的proxy代理,bean是新的proxy也是新的,
+    所以SingletonTargetSource.isStatic=true 只正对当前代理做优化
+    如果Prototype是PrototypeTargetSource,则会导致每次bean方法拦截的时候,bean都会被重新创建,
+    proxy.xx(),proxy.yy()同一个代理对象上只是调用2个同步的方法,内部的bean已经被创建了2次,
+    对于ioc容器来说scope已经失去控制了
+    end note
+
+    CglibAopProxy -> Callback : new
+    note left
+    7个cglib拦截器
+    # aopInterceptor
+        DynamicUnadvisedExposedInterceptor
+        每次拦截时,调用AdvisedSupport#getInterceptorsAndDynamicInterceptionAdvice方法
+        重新获取advisor
+        代理对象新添加的advisor会生效
+    # targetInterceptor
+        exposeProxy = true
+            isStatic = true
+                StaticUnadvisedExposedInterceptor
+            isStatic = false
+                DynamicAdvisedInterceptor
+        exposeProxy = false
+            isStatic = true
+                StaticUnadvisedInterceptor
+            isStatic = false
+                DynamicUnadvisedInterceptor
+    # targetDispatcher
+        isStatic = true
+            StaticDispatcher
+        isStatic = false
+            SerializableNoOp
+    # advisedDispatcher
+        AdvisedDispatcher
+    # EqualsInterceptor
+    # HashCodeInterceptor
+
+    isStatic && isFrozen = true
+    # FixedChainStaticTargetInterceptor
+
+    end note
+
+
+
+deactivate
+
+
+
+@enduml
